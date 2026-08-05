@@ -17,14 +17,16 @@ Conversation memory, historical snapshots, prototypes, and synthetic examples ar
 
 Before changing the repository, read only:
 
-1. `AGENTS.md`
-2. `CONTRIBUTING.md`
-3. `docs/governance/EXECUTION_AND_SAFETY_RULES.md`
-4. `docs/governance/EVIDENCE_AND_HANDOFF.md`
-5. The exact architecture or ADR paths named by the Workstream Contract
-6. The Workstream Contract itself
+1. `AGENTS.md` as the repository entry point.
+2. The exact active Workstream Contract supplied by the RP02 Central Controller.
+3. `CONTRIBUTING.md`.
+4. `docs/governance/EXECUTION_AND_SAFETY_RULES.md`.
+5. `docs/governance/EVIDENCE_AND_HANDOFF.md`.
+6. Only the exact architecture, ADR, design-contract, or other repository paths named by the Workstream Contract.
 
 Stop reading when these sources fully cover the authorized task. Do not load unrelated portfolio packs, Drive folders, repositories, historical archives, or prior chats.
+
+If the active Workstream Contract is missing, does not identify its baseline and Stop Gate, or conflicts with a higher-authority source, stop with `BLOCKED_AUTHORITY_OR_CONTRACT` before reading optional context or changing files.
 
 ## 3. Repository identity and product invariants
 
@@ -88,11 +90,13 @@ If any required field is missing or conflicting, stop with `BLOCKED_AUTHORITY_OR
 - Destructive data operations, migrations, external integrations, and deployment require separate explicit authorization and recovery evidence.
 - Denied and out-of-scope paths must be tested whenever authority boundaries are implemented.
 
-## 7. Evidence and completion
+## 7. Evidence, review, and completion
 
 A task is not complete merely because files changed. Completion requires the tests, CI, evidence, limitations, and handoff specified in `docs/governance/EVIDENCE_AND_HANDOFF.md` and the Workstream Contract.
 
-The executor must stop after opening or updating the authorized pull request and publishing the handoff. The RP02 Central Controller performs primary review and issues the verdict.
+The executor must stop after opening or updating the authorized pull request and publishing the handoff. The RP02 Central Controller performs primary review and issues the repository-control verdict.
+
+Independent review is an additional read-only assurance layer when required by `CONTRIBUTING.md` or the Workstream Contract. It must be pinned to an exact base and head, must not modify the repository or canonical state, and does not replace Controller review or any owner decision required by the active gate.
 
 ## 8. Bounded overrides
 
