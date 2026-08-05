@@ -1,0 +1,75 @@
+name: Governance Baseline
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+      - "docs/**"
+      - ".github/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+      - "docs/**"
+      - ".github/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required governance files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "README.md"
+            "AGENTS.md"
+            "CONTRIBUTING.md"
+            "docs/governance/EXECUTION_AND_SAFETY_RULES.md"
+            "docs/governance/EVIDENCE_AND_HANDOFF.md"
+            "docs/architecture/README.md"
+            "docs/adr/README.md"
+            ".github/pull_request_template.md"
+          )
+          for path in "${required[@]}"; do
+            test -s "$path" || { echo "Missing or empty required file: $path"; exit 1; }
+          done
+
+      - name: Verify internal governance references
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'CONTRIBUTING.md' AGENTS.md
+          grep -Fq 'docs/governance/EXECUTION_AND_SAFETY_RULES.md' AGENTS.md
+          grep -Fq 'docs/governance/EVIDENCE_AND_HANDOFF.md' AGENTS.md
+          grep -Fq 'docs/adr/' docs/architecture/README.md
+
+      - name: Reject implementation paths in governance bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden='^(src|app|apps|api|server|client|frontend|backend|database|db|migrations|infra|deploy|deployment|terraform|k8s|helm)/'
+          if git ls-files | grep -E "$forbidden"; then
+            echo "Implementation or deployment paths are outside the governance bootstrap scope."
+            exit 1
+          fi
+
+      - name: Reject common secret files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx)|id_rsa|credentials\.json)$'; then
+            echo "Potential secret-bearing file detected."
+            exit 1
+          fi
