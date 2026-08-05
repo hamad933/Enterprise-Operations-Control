@@ -26,6 +26,7 @@ Every handoff must identify:
 - Acceptance criteria coverage
 - Tests executed and results
 - CI runs and artifacts tied to the same head commit
+- Whether CI checked the raw head, the PR merge context, or both
 - Security, privacy, authority, and data impact
 - Limitations, deviations, skipped checks, and unexpected findings
 - Reviewer entry point
@@ -74,10 +75,11 @@ A governance-only workstream must at minimum prove:
 
 - only authorized governance and documentation paths changed;
 - required governance files exist;
-- internal file references resolve;
-- no application, database, deployment, integration, or secret-bearing files were introduced;
+- repository-relative Markdown links and paths resolve;
+- no application, database, deployment, integration, or secret-bearing files were introduced by the governance workstream;
 - branch and PR metadata match the Workstream Contract;
-- the handoff names the exact head commit and Stop Gate.
+- the handoff names the exact head commit and Stop Gate;
+- any independent review is pinned to the same frozen base and head.
 
 ## 6. Execution Handoff template
 
@@ -101,6 +103,8 @@ A governance-only workstream must at minimum prove:
 ## Acceptance criteria and evidence
 
 ## Tests and CI
+- Raw-head run:
+- PR merge-context run:
 
 ## Security / privacy / authority / data coverage
 
@@ -118,17 +122,41 @@ REFERENCE_ONLY | PROMOTE_TO_DRIVE | DO_NOT_PRESERVE
 
 The handoff is an index, not an evidence archive.
 
-## 7. Controller review outcomes
+## 7. Review outcomes and authority
 
-The RP02 Central Controller issues one of:
+### Controller primary review
+
+The RP02 Central Controller issues the repository-control verdict:
 
 - `PASS`
 - `PASS_WITH_NOTES`
 - `REVISION_REQUIRED`
 - `BLOCKED_MISSING_EVIDENCE`
 - `BLOCKED_AUTHORITY_OR_CONTRACT`
+- `REJECTED_OUT_OF_SCOPE`
+- `SUPERSEDED`
 
-An executor does not issue the final verdict.
+The Controller verifies scope, direct diff, applicable governance, checks, evidence, limitations, and active authority. An executor does not issue this verdict.
+
+### Independent assurance review
+
+Independent review is an additional read-only assurance layer. It is mandatory for Controller-authored governance and whenever another trigger in `CONTRIBUTING.md` or the Workstream Contract applies.
+
+The independent reviewer must receive a frozen contract containing the exact repository, base, head, pull request, criteria, exclusions, evidence sources, and Stop Gate. The reviewer may issue:
+
+- `PASS`
+- `PASS_WITH_NOTES`
+- `REVISION_REQUIRED`
+- `BLOCKED_MISSING_EVIDENCE`
+
+The independent outcome:
+
+- applies only to the frozen version reviewed;
+- is evidence for Controller reconciliation, not merge authority;
+- does not replace owner approval where the active gate reserves a decision to the owner;
+- does not authorize repository edits, merge, release, deployment, product approval, or canonical Drive updates.
+
+A blocking independent outcome prevents merge. A corrected head requires fresh checks and a new independent review. If the Controller and independent reviewer materially disagree, record the conflict and escalate; do not merge by unilateral Controller override.
 
 ## 8. Stop gate
 
