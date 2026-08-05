@@ -38,10 +38,54 @@ Use `.github/pull_request_template.md` as the minimum structure.
 
 ## 3. Reviews and merging
 
+### Primary review
+
 - The executor may not approve or merge its own work.
-- The RP02 Central Controller performs primary review against the direct diff and evidence.
-- Independent review is required only when the Controller identifies a justified trigger, such as a material security boundary, destructive operation, release, major architecture change, cross-project reusable policy, or disputed result.
-- Merge requires an explicit Controller verdict and any owner approval required by the active gate.
+- The RP02 Central Controller performs primary review against the direct diff, exact version, CI, evidence, and active Workstream Contract.
+- The Controller issues the repository-control verdict and coordinates any owner decision required by the active gate.
+
+### Independent review triggers
+
+Independent review is required when any of the following applies:
+
+- the Controller authored or materially implemented the governance proposal under review;
+- the change modifies the authority model, repository execution contract, security boundary, destructive-operation policy, release or recovery policy, or cross-repository reusable rule;
+- the active Workstream Contract or owner explicitly requires it;
+- material disagreement, unresolved risk, or disputed evidence remains after primary review.
+
+The Controller may also require independent review for other proportionate high-risk changes.
+
+### Independence and frozen scope
+
+An independent reviewer must:
+
+- be separate from the executor or author of the reviewed change;
+- not act as the Controller issuing the final repository-control verdict for the same frozen version;
+- review an exact repository, base commit, head commit, pull request, criteria set, exclusions, and Stop Gate;
+- use direct repository, PR, CI, and evidence sources named by the frozen review contract;
+- remain read-only and avoid importing unrelated portfolio context or historical chats as authority.
+
+The independent reviewer may issue:
+
+- `PASS`
+- `PASS_WITH_NOTES`
+- `REVISION_REQUIRED`
+- `BLOCKED_MISSING_EVIDENCE`
+
+This is an independent-assurance outcome, not merge authority and not an owner product decision.
+
+### Reconciliation and disagreement
+
+- The Controller records and reconciles the independent findings against the exact reviewed head.
+- A blocking independent outcome (`REVISION_REQUIRED` or `BLOCKED_MISSING_EVIDENCE`) prevents merge until a corrected head receives fresh checks and a new review.
+- Findings and outcomes do not transfer automatically to a later commit.
+- If the Controller and independent reviewer disagree materially, do not merge. Record the conflict and escalate it to the owner or another explicitly authorized reviewer.
+- For Controller-authored governance, the Controller may not waive a blocking independent finding by itself.
+
+### Merge authority
+
+- Merge requires an explicit Controller verdict after all required reviews and checks, plus any owner approval required by the active gate.
+- No independent-review outcome, CI success, or mergeable GitHub state alone authorizes merge.
 - Prefer squash merge for a clean bounded workstream history unless the Workstream Contract requires preserved commits.
 - Delete the workstream branch after an accepted merge unless retention is justified.
 
@@ -59,10 +103,11 @@ Repository settings may not yet enforce every policy mechanically. The written r
 Run the smallest complete validation set required by the Workstream Contract. At minimum, governance-only changes must verify:
 
 - required files exist;
-- internal paths referenced by governance files resolve;
-- no application, database, deployment, or secret-bearing files were added outside scope;
+- repository-relative Markdown paths resolve;
+- no application, database, deployment, or secret-bearing files were added outside the governance workstream scope;
 - the PR diff contains only authorized paths;
-- Markdown is readable and has no placeholder authority claims.
+- Markdown is readable and has no placeholder authority claims;
+- CI evidence states whether it tested the raw head, PR merge context, or both.
 
 Future implementation work must add domain, security, negative-path, accessibility, data-safety, and migration evidence proportionate to its scope.
 
