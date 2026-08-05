@@ -10,27 +10,32 @@ The product context is synthetic unless a later owner-approved contract states o
 
 ## Authority boundaries
 
+- The Owner approves product, business, visual, risk-acceptance, and other decisions reserved by the active Google Drive gate. Owner approval is not inferred from repository activity.
 - Google Drive owns governed live project-control state, approved decisions, gates, accepted evidence, release records, and continuity.
 - GitHub owns repository-native instructions, branches, commits, pull requests, CI, technical artifacts, and implementation history.
-- The RP02 Central Controller owns planning, workstream authorization, governance sufficiency, primary review, and gate coordination.
+- The RP02 Central Controller owns planning, bounded workstream authorization, repository-governance sufficiency, primary review, verdict reconciliation, and gate coordination.
 - Executors perform only bounded authorized work and may not self-approve, merge, release, deploy, or update canonical Drive state.
+- Independent reviewers provide read-only assurance against a frozen base and head when required. They may issue an assurance outcome and findings, but may not edit, merge, approve product decisions, release, deploy, or update canonical Drive state.
 
-A repository file or historical note does not independently authorize product implementation.
+A repository file, independent-review outcome, CI result, or historical note does not independently authorize product implementation or merge.
 
 ## Start here
 
 Read in this order before making changes:
 
-1. [`AGENTS.md`](AGENTS.md)
-2. [`CONTRIBUTING.md`](CONTRIBUTING.md)
-3. [`docs/governance/EXECUTION_AND_SAFETY_RULES.md`](docs/governance/EXECUTION_AND_SAFETY_RULES.md)
-4. [`docs/governance/EVIDENCE_AND_HANDOFF.md`](docs/governance/EVIDENCE_AND_HANDOFF.md)
-5. Only the architecture or ADR paths named by the active Workstream Contract
+1. [`AGENTS.md`](AGENTS.md) as the repository entry point.
+2. The exact active Workstream Contract supplied by the RP02 Central Controller.
+3. [`CONTRIBUTING.md`](CONTRIBUTING.md).
+4. [`docs/governance/EXECUTION_AND_SAFETY_RULES.md`](docs/governance/EXECUTION_AND_SAFETY_RULES.md).
+5. [`docs/governance/EVIDENCE_AND_HANDOFF.md`](docs/governance/EVIDENCE_AND_HANDOFF.md).
+6. Only architecture, ADR, design-contract, or other repository paths explicitly named by the Workstream Contract.
 
 Architecture entry points:
 
 - [`docs/architecture/README.md`](docs/architecture/README.md)
 - [`docs/adr/README.md`](docs/adr/README.md)
+
+These entry points are not mandatory task context unless the active Workstream Contract names them.
 
 ## Product invariants
 
