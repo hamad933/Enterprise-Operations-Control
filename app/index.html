@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RP02 — مركز الانتباه التنفيذي</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="appShell">
+    <header class="app-header">
+      <div class="brand" aria-label="RP02 Enterprise Operations">
+        <div class="brand-mark" id="brandSymbol" aria-hidden="true"></div>
+        <div class="brand-copy"><div class="brand-title"><bdi dir="ltr">RP02</bdi> <span>Enterprise Operations</span></div><div class="brand-sub">Executive Attention Center</div></div>
+      </div>
+
+      <div class="scope-wrap" id="scopeWrap">
+        <button class="scope-btn" id="scopeButton" aria-haspopup="listbox" aria-expanded="false" aria-controls="scopeMenu">
+          <span class="scope-label"><strong id="scopeName">المنطقة الوسطى</strong><small id="selectedSiteName">الموقع المحدد: المقر الرئيسي</small></span>
+          <span data-icon="chevronDown" data-icon-size="17" aria-hidden="true"></span>
+        </button>
+        <div class="scope-menu" id="scopeMenu" role="listbox" aria-label="تحديد النطاق التشغيلي"></div>
+      </div>
+
+      <label class="search">
+        <span class="sr-only">البحث في عناصر الانتباه</span>
+        <input id="searchInput" type="search" placeholder="ابحث عن موقع، أصل، عمل، أو قرار…" autocomplete="off">
+        <span class="search-icon" data-icon="search" data-icon-size="18" aria-hidden="true"></span>
+      </label>
+
+      <div class="user-zone">
+        <button class="ghost-icon mobile-menu-btn" aria-label="فتح قائمة التنقل" data-placeholder="قائمة التنقل المدمجة متاحة في الشريط السفلي على الهاتف"><span data-icon="menu"></span></button>
+        <div class="notification-wrap" id="notificationWrap">
+          <button class="notify-btn" id="notifyButton" aria-label="الإشعارات التشغيلية، 3 غير مقروءة" aria-expanded="false" aria-controls="notificationPop">
+            <span data-icon="bell"></span><span class="notify-dot" aria-hidden="true">3</span>
+          </button>
+          <div class="notification-pop" id="notificationPop" role="region" aria-label="الإشعارات التشغيلية">
+            <strong>الإشعارات التشغيلية</strong>
+            <p>تمت إضافة قراءة جديدة إلى أدلة <bdi class="ltr" dir="ltr">WO-1048</bdi>.</p>
+            <p>ما زالت معايرة <bdi class="ltr" dir="ltr">VR-312</bdi> بانتظار إعادة التحقق.</p>
+            <p>تم تحديث مسؤول الإجراء في <bdi class="ltr" dir="ltr">CA-221</bdi>.</p>
+          </div>
+        </div>
+        <div class="user-card" aria-label="المستخدم التجريبي الحالي: أحمد الحسيني، مدير التشغيل">
+          <div class="avatar" aria-hidden="true">أح</div>
+          <div class="user-copy"><div class="user-name">أحمد الحسيني</div><div class="user-role">مدير التشغيل · حساب تجريبي</div></div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="top-nav" aria-label="التنقل الرئيسي">
+      <button class="nav-btn active" aria-current="page"><span data-icon="attention"></span><span>الانتباه</span></button>
+      <button class="nav-btn" data-placeholder="مساحة الأعمال خارج نطاق S01"><span data-icon="work"></span><span>الأعمال</span></button>
+      <button class="nav-btn" data-placeholder="مساحة المواقع خارج نطاق S01"><span data-icon="sites"></span><span>المواقع</span></button>
+      <button class="nav-btn" data-placeholder="مساحة التحقق خارج نطاق S01"><span data-icon="verification"></span><span>التحقق</span></button>
+      <button class="nav-btn" data-placeholder="مساحة القرارات خارج نطاق S01"><span data-icon="decisions"></span><span>القرارات</span></button>
+      <button class="nav-btn" data-placeholder="مساحة التقارير خارج نطاق S01"><span data-icon="reports"></span><span>التقارير</span></button>
+    </nav>
+
+    <aside class="left-rail" aria-label="اختصارات المنتج">
+      <button class="rail-btn active" aria-label="الانتباه" aria-current="page"><span data-icon="attention"></span></button>
+      <button class="rail-btn" data-placeholder="الأعمال خارج نطاق S01" aria-label="الأعمال"><span data-icon="work"></span></button>
+      <button class="rail-btn" data-placeholder="المواقع خارج نطاق S01" aria-label="المواقع"><span data-icon="sites"></span></button>
+      <button class="rail-btn" data-placeholder="التحقق خارج نطاق S01" aria-label="التحقق"><span data-icon="verification"></span></button>
+      <button class="rail-btn" data-placeholder="القرارات خارج نطاق S01" aria-label="القرارات"><span data-icon="decisions"></span></button>
+      <button class="rail-btn" data-placeholder="التقارير خارج نطاق S01" aria-label="التقارير"><span data-icon="reports"></span></button>
+      <div class="rail-spacer"></div>
+      <button class="rail-btn" data-placeholder="الإعدادات خارج نطاق S01" aria-label="الإعدادات"><span data-icon="settings"></span></button>
+    </aside>
+
+    <main class="workspace" id="workspace">
+      <div class="synthetic-banner"><span class="synthetic-mark" aria-hidden="true"></span><span id="syntheticNotice">بيانات تشغيلية اصطناعية لأغراض العرض والمراجعة فقط — ليست بيانات تشغيل حية.</span></div>
+      <div class="workspace-grid">
+        <section class="ledger-col" aria-labelledby="attentionHeading">
+          <div class="section-head">
+            <div><h1 id="attentionHeading">أولويات الانتباه</h1><div class="section-sub" id="ledgerScopeNote"></div></div>
+            <div class="ledger-controls">
+              <div class="filter-bar" role="group" aria-label="تصفية عناصر الانتباه" id="filterBar"></div>
+              <button class="view-mode" data-placeholder="عرض الكثافة هو العرض الوحيد في S01" aria-label="خيارات العرض"><span data-icon="grid"></span></button>
+            </div>
+          </div>
+
+          <div class="authority-boundary" id="authorityBoundary" role="note"></div>
+
+          <div class="ledger-shell">
+            <div class="ledger-head" aria-hidden="true"><div>الأولوية</div><div>ما حدث</div><div>الموقع / الأصل</div><div>السبب المباشر</div><div>المالك / الحالة</div><div>الإجراء التالي</div></div>
+            <div class="ledger-list" id="ledgerList" role="list" aria-live="polite"></div>
+            <div class="empty-state" id="emptyState" hidden><strong>لا توجد عناصر مطابقة</strong><span>غيّر المرشح أو عبارة البحث لعرض عناصر أخرى.</span></div>
+            <div class="ledger-footer"><span id="visibleSummary"></span><span id="siteAuthoritySummary"></span></div>
+          </div>
+
+          <section class="route-panel" aria-labelledby="routeHeading">
+            <div class="route-title-row"><div><h2 id="routeHeading">رحلة الموقع إلى الإجراء</h2><p>Site → Signal → Evidence → Verification → Decision → Action → Outcome</p></div><div class="route-context" id="routeContext"></div></div>
+            <div class="route-ribbon" id="routeRibbon"></div>
+            <button class="route-mobile-toggle" id="routeToggle" aria-expanded="false">عرض المسار التشغيلي كاملًا</button>
+          </section>
+
+          <section class="mobile-pulse" aria-label="نبض العمليات المختصر">
+            <div class="mobile-pulse-head"><div><h2>نبض العمليات</h2><div class="pulse-kicker">النطاق الحالي</div></div><div class="mobile-pulse-total" id="mobilePulseTotal">23</div></div>
+            <div class="mobile-pulse-metrics"><div class="mobile-pulse-metric"><strong id="mobileCritical">4</strong><span>حرجة</span></div><div class="mobile-pulse-metric"><strong id="mobileVerification">7</strong><span>تحت التحقق</span></div><div class="mobile-pulse-metric"><strong id="mobileActionable">6</strong><span>جاهزة للإجراء</span></div></div>
+          </section>
+
+          <section class="site-strip" aria-labelledby="siteHeading">
+            <div class="site-strip-head"><div><h2 id="siteHeading">نظرة تشغيلية على المواقع</h2><p>اختيار الموقع يغيّر حالة الموقع المحدد بصورة مستقلة عن النطاق التشغيلي.</p></div><button class="link-btn" data-placeholder="صفحة المواقع الكاملة خارج نطاق S01">عرض جميع المواقع</button></div>
+            <div class="site-strip-track" id="siteStrip"></div>
+          </section>
+        </section>
+
+        <aside class="pulse-col" aria-label="نبض العمليات">
+          <section class="pulse-card">
+            <h2>نبض العمليات</h2><div class="pulse-kicker">النطاق التشغيلي الحالي</div>
+            <div class="pulse-main"><div class="pulse-number" id="pulseTotal">23</div><div class="pulse-main-copy"><strong>عنصرًا يتطلب انتباهًا</strong><span id="criticalCount">4 حرجة</span></div></div>
+            <div class="pulse-list" id="pulseList"></div>
+          </section>
+          <section class="pulse-card">
+            <h2>صحة النطاق التشغيلي</h2><div class="pulse-kicker">توزيع اصطناعي للحالة عبر المواقع المرئية</div>
+            <div class="health-wrap"><div class="health-ring" role="img" aria-label="مؤشر صحة تشغيلي اصطناعي: 72 بالمئة طبيعي، 16 بالمئة تنبيه، 12 بالمئة حرج"></div><div class="health-list"><div class="health-line"><span>طبيعي</span><strong>18</strong></div><div class="health-line"><span>تنبيه</span><strong>3</strong></div><div class="health-line"><span>حرج</span><strong>2</strong></div></div></div>
+          </section>
+          <section class="pulse-card">
+            <h2>القرارات والمراجعات المؤثرة</h2><div class="pulse-kicker">عناصر مرتبطة بمسار العمل الحالي</div>
+            <div class="decision-list"><div class="decision-item"><span class="decision-state critical-text">قرار معلّق</span><span>طلب اعتماد تغيير مؤقت — منذ 15 دقيقة</span></div><div class="decision-item"><span class="decision-state ok-text">مراجعة موثقة</span><span>إعادة تحقق لقراءة المعايرة — منذ 45 دقيقة</span></div><div class="decision-item"><span class="decision-state warning-text">إجراء تحت المتابعة</span><span>تصحيح تشغيلي في محطة الضخ الشمالية</span></div></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <nav class="mobile-bar" aria-label="التنقل المحمول">
+      <button class="mobile-tab active" aria-current="page"><span data-icon="attention"></span><span>الانتباه</span></button>
+      <button class="mobile-tab" data-placeholder="الأعمال خارج نطاق S01"><span data-icon="work"></span><span>الأعمال</span></button>
+      <button class="mobile-tab" data-placeholder="المواقع خارج نطاق S01"><span data-icon="sites"></span><span>المواقع</span></button>
+      <button class="mobile-tab" data-placeholder="المزيد خارج نطاق S01"><span data-icon="more"></span><span>المزيد</span></button>
+    </nav>
+  </div>
+
+  <div class="focus-overlay" id="focusOverlay" aria-hidden="true"></div>
+  <aside class="focus-panel" id="focusPanel" role="dialog" aria-modal="true" aria-labelledby="focusHeading" aria-hidden="true" tabindex="-1">
+    <div class="focus-head">
+      <div class="focus-topline"><h2 id="focusHeading">Focus / Authority Aperture</h2><button class="close-btn" id="focusClose" aria-label="إغلاق تفاصيل عنصر الانتباه"><span data-icon="close" data-icon-size="20"></span></button></div>
+      <div class="focus-summary"><div class="focus-priority" id="focusPriority">1</div><div><div class="focus-title" id="focusTitle">—</div><div class="focus-id" id="focusId">—</div><div class="focus-time" id="focusTime">—</div></div></div>
+    </div>
+    <div class="focus-tabs" role="tablist" aria-label="أقسام تفاصيل عنصر الانتباه">
+      <button class="focus-tab active" role="tab" aria-selected="true" data-tab="overview">نظرة عامة</button>
+      <button class="focus-tab" role="tab" aria-selected="false" tabindex="-1" data-tab="evidence">الأدلة</button>
+      <button class="focus-tab" role="tab" aria-selected="false" tabindex="-1" data-tab="verification">التحقق</button>
+      <button class="focus-tab" role="tab" aria-selected="false" tabindex="-1" data-tab="authority">الصلاحية</button>
+    </div>
+    <div class="focus-body">
+      <section class="focus-section active" role="tabpanel" data-section="overview" id="overviewSection"></section>
+      <section class="focus-section" role="tabpanel" data-section="evidence" id="evidenceSection"></section>
+      <section class="focus-section" role="tabpanel" data-section="verification" id="verificationSection"></section>
+      <section class="focus-section" role="tabpanel" data-section="authority" id="authoritySection"></section>
+    </div>
+    <div class="focus-action"><button class="primary-action" id="primaryAction">فتح تنفيذ الإصلاح</button><div class="action-note" id="actionNote">محاكاة واجهة فقط — لا يتم تغيير أي سجل أو نظام فعلي.</div><div class="sim-state" id="simState" hidden><bdi class="ltr" dir="ltr">ACTION_SIMULATED</bdi> — تمت محاكاة الإجراء داخل التطبيق فقط، ولم تتغير أي حالة تشغيلية حقيقية.</div></div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
