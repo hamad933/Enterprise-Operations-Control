@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>RP02 — مركز الانتباه التنفيذي</title>
+  <style>
+    :root{
+      --bg:#f4f6f8;
+      --paper:#ffffff;
+      --paper-2:#fafbfc;
+      --ink:#0e1a27;
+      --muted:#667382;
+      --line:#dde3e9;
+      --line-strong:#c9d2dc;
+      --navy:#062943;
+      --navy-2:#0d3f5f;
+      --blue:#1c5d8b;
+      --red:#c92b2b;
+      --red-soft:#fff3f2;
+      --orange:#e97713;
+      --orange-soft:#fff7ed;
+      --amber:#bd8400;
+      --green:#21845a;
+      --green-soft:#edf8f2;
+      --slate:#557085;
+      --shadow:0 14px 34px rgba(21,39,56,.10);
+      --shadow-soft:0 6px 16px rgba(21,39,56,.07);
+      --radius:14px;
+      --header-h:72px;
+      --subnav-h:50px;
+      --rail-w:62px;
+      font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
+    body{font-size:14px;line-height:1.55;overflow-x:hidden}
+    button,input{font:inherit}
+    button{color:inherit}
+    a{color:inherit}
+    .ltr{direction:ltr;unicode-bidi:isolate;display:inline-block;letter-spacing:.01em}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    :focus-visible{outline:3px solid rgba(28,93,139,.28);outline-offset:2px}
+
+    .app-header{
+      height:var(--header-h);background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);
+      display:grid;grid-template-columns:220px minmax(240px,1fr) minmax(260px,420px) 250px;align-items:center;
+      gap:16px;padding:0 22px;position:sticky;top:0;z-index:40;backdrop-filter:blur(10px);direction:ltr
+    }
+    .brand{display:flex;align-items:center;gap:11px;direction:ltr;min-width:0}
+    .brand-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:var(--navy);color:#fff;box-shadow:var(--shadow-soft)}
+    .brand-copy{line-height:1.12}
+    .brand-title{font-weight:800;font-size:17px;letter-spacing:.02em}
+    .brand-sub{font-size:11px;color:var(--muted);margin-top:4px}
+    .scope-wrap{position:relative;justify-self:start;width:min(100%,420px);direction:rtl}
+    .scope-btn{width:100%;height:48px;background:#fff;border:1px solid var(--line);border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;cursor:pointer;box-shadow:0 2px 7px rgba(18,38,57,.03)}
+    .scope-label{min-width:0;text-align:right}
+    .scope-label strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .scope-label small{display:block;color:var(--muted);font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .chev{width:9px;height:9px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin-inline-start:5px;flex:0 0 auto}
+    .scope-menu{position:absolute;inset-inline-start:0;top:54px;width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:7px;display:none;z-index:80}
+    .scope-menu.open{display:block}
+    .scope-option{width:100%;border:0;background:transparent;border-radius:9px;padding:10px 11px;text-align:right;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .scope-option:hover,.scope-option[aria-current="true"]{background:#f0f5f8}
+    .scope-option small{display:block;color:var(--muted);font-size:11px}
+    .scope-option .auth-note{font-size:10px;padding:2px 7px;border-radius:999px;background:#eef2f6;color:#566676;white-space:nowrap}
+    .search{position:relative;width:100%;direction:rtl}
+    .search input{width:100%;height:46px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 42px 0 14px;color:var(--ink)}
+    .search input::placeholder{color:#94a0ac}
+    .search-icon{position:absolute;inset-inline-start:15px;top:13px;width:18px;height:18px;border:2px solid var(--ink);border-radius:50%}
+    .search-icon:after{content:"";position:absolute;width:7px;height:2px;background:var(--ink);left:-5px;bottom:-2px;transform:rotate(45deg);border-radius:2px}
+    .user-zone{display:flex;align-items:center;justify-content:flex-end;gap:10px;direction:ltr}
+    .notify-btn,.ghost-icon{width:40px;height:40px;border:0;background:transparent;border-radius:10px;cursor:pointer;position:relative;display:grid;place-items:center}
+    .notify-btn:hover,.ghost-icon:hover{background:#f3f6f8}
+    .notify-dot{position:absolute;top:3px;right:3px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;border:2px solid #fff}
+    .user-card{display:flex;align-items:center;gap:9px;direction:rtl;text-align:right;min-width:0}
+    .avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#d9c6b3,#5f4638);color:white;font-weight:700;border:3px solid #eef1f4;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .user-name{font-weight:700;font-size:12px;white-space:nowrap}
+    .user-role{color:var(--muted);font-size:10px;margin-top:2px}
+
+    .top-nav{height:var(--subnav-h);background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:stretch;padding-inline:calc(var(--rail-w) + 24px) 24px;position:sticky;top:var(--header-h);z-index:35}
+    .nav-btn{min-width:98px;padding:0 18px;border:0;background:transparent;cursor:pointer;color:#344454;position:relative;font-weight:600}
+    .nav-btn:hover{background:#f8fafb}
+    .nav-btn.active{color:var(--navy);font-weight:800}
+    .nav-btn.active:after{content:"";position:absolute;height:3px;background:var(--navy);border-radius:3px 3px 0 0;left:20px;right:20px;bottom:0}
+
+    .left-rail{position:fixed;left:0;top:calc(var(--header-h) + var(--subnav-h));bottom:0;width:var(--rail-w);background:#fff;border-right:1px solid var(--line);z-index:30;display:flex;flex-direction:column;align-items:center;padding:14px 8px;gap:11px}
+    .rail-btn{width:42px;height:42px;border:0;background:transparent;border-radius:11px;cursor:pointer;display:grid;place-items:center;color:#4b6073;position:relative}
+    .rail-btn:hover{background:#f3f7fa;color:var(--navy)}
+    .rail-btn.active{background:var(--navy);color:#fff;box-shadow:0 6px 13px rgba(6,41,67,.18)}
+    .rail-btn.active:after{content:"";width:5px;height:5px;border-radius:50%;background:#ff5858;position:absolute;top:8px;right:7px;border:1px solid #fff}
+    .rail-spacer{flex:1}
+
+    .workspace{margin-left:var(--rail-w);padding:18px 22px 26px;min-height:calc(100vh - var(--header-h) - var(--subnav-h));transition:filter .18s ease,opacity .18s ease}
+    .workspace-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;grid-template-areas:"ledger pulse";gap:14px;direction:ltr;align-items:start}
+    .ledger-col{grid-area:ledger;direction:rtl;min-width:0}
+    .pulse-col{grid-area:pulse;direction:rtl;min-width:0;display:flex;flex-direction:column;gap:12px}
+
+    .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .section-head h1{font-size:20px;margin:0 0 2px;font-weight:800;letter-spacing:-.01em}
+    .section-sub{font-size:11px;color:var(--muted)}
+    .ledger-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .filter-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .filter-btn{border:1px solid var(--line);background:#fff;height:34px;padding:0 13px;border-radius:999px;color:#506070;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+    .filter-btn:hover{border-color:var(--line-strong);background:#fbfcfd}
+    .filter-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
+    .filter-count{min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:rgba(90,110,130,.10);display:grid;place-items:center;font-size:10px}
+    .filter-btn.active .filter-count{background:rgba(255,255,255,.16)}
+    .view-mode{width:36px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;cursor:pointer;color:#607081;display:grid;place-items:center}
+
+    .ledger-shell{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:0 3px 11px rgba(18,38,57,.04)}
+    .ledger-head{display:grid;grid-template-columns:74px 1.45fr 1.15fr 1.15fr 1fr 124px;gap:0;background:#fafbfc;border-bottom:1px solid var(--line);font-size:10px;font-weight:700;color:#6b7785;padding:0 10px}
+    .ledger-head>div{padding:10px 10px}
+    .ledger-list{display:block}
+    .ledger-row{position:relative;display:grid;grid-template-columns:74px 1.45fr 1.15fr 1.15fr 1fr 124px;gap:0;align-items:stretch;border-bottom:1px solid #e9edf1;background:#fff;cursor:pointer;min-height:88px;transition:background .14s ease,box-shadow .14s ease,transform .14s ease}
+    .ledger-row:last-child{border-bottom:0}
+    .ledger-row:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--row-accent,#8092a2)}
+    .ledger-row:hover{background:#fbfcfd}
+    .ledger-row.selected{background:linear-gradient(90deg,#fff 0,#fff9f8 55%,#fff 100%);box-shadow:inset 0 0 0 1px var(--row-accent,#c92b2b);z-index:2}
+    .ledger-row.selected:after{content:"";position:absolute;right:-18px;top:50%;width:18px;height:2px;background:var(--row-accent);display:none}
+    .cell{padding:13px 10px;border-inline-start:1px solid #edf0f3;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+    .cell:first-child{border-inline-start:0}
+    .priority-cell{align-items:center;text-align:center}
+    .priority-no{font-size:27px;line-height:1;font-weight:300;color:var(--row-accent)}
+    .severity-mini{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;color:var(--row-accent);background:color-mix(in srgb, var(--row-accent) 8%, white)}
+    .row-title{font-size:13px;font-weight:800;line-height:1.35;color:#172331}
+    .row-meta{font-size:10.5px;color:var(--muted);line-height:1.42}
+    .row-meta strong{font-weight:700;color:#445464}
+    .status-line{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#536473}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+    .owner-stack{display:flex;align-items:center;gap:7px}
+    .tiny-avatars{display:flex;direction:ltr}
+    .tiny-avatar{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#dce4eb;color:#25415b;font-size:8px;font-weight:800;border:2px solid #fff;margin-left:-5px}
+    .action-btn{border:0;background:transparent;color:var(--navy);font-weight:800;text-align:right;cursor:pointer;padding:5px 0;display:inline-flex;align-items:center;gap:7px;justify-content:flex-start}
+    .action-arrow{direction:ltr;font-size:17px;line-height:1}
+    .empty-state{padding:28px;text-align:center;color:var(--muted);display:none}
+    .empty-state strong{display:block;color:var(--ink);font-size:14px;margin-bottom:4px}
+    .ledger-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-top:1px solid var(--line);background:#fbfcfd;font-size:11px;color:var(--muted)}
+    .link-btn{border:0;background:transparent;color:#1f5c89;font-weight:700;cursor:pointer;padding:4px 0}
+
+    .route-panel{margin-top:13px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px 14px 14px;box-shadow:0 3px 11px rgba(18,38,57,.04)}
+    .route-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .route-title-row h2{font-size:14px;margin:0;font-weight:800}
+    .route-context{font-size:10.5px;color:var(--muted)}
+    .route-ribbon{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;align-items:stretch;direction:rtl}
+    .route-stage{min-width:0;border:1px solid var(--line);border-radius:11px;background:#fbfcfd;padding:9px 8px 8px;position:relative;overflow:hidden;min-height:98px}
+    .route-stage:after{content:"";position:absolute;top:0;right:0;left:0;height:3px;background:#aab6c1}
+    .route-stage[data-state="done"]:after{background:var(--green)}
+    .route-stage[data-state="active"]{background:#fff7f6;border-color:#efc1bd;box-shadow:0 4px 11px rgba(201,43,43,.08)}
+    .route-stage[data-state="active"]:after{background:var(--red)}
+    .route-stage[data-state="pending"]:after{background:var(--orange)}
+    .route-stage[data-state="blocked"]{background:#f5f6f7;color:#77838f}
+    .route-stage[data-state="blocked"]:after{background:#707d88}
+    .stage-head{display:flex;align-items:center;gap:6px;font-weight:800;font-size:11.5px}
+    .stage-icon{width:26px;height:26px;border-radius:9px;background:#eef2f5;color:var(--navy);display:grid;place-items:center;font-size:12px;flex:0 0 auto}
+    .route-stage[data-state="active"] .stage-icon{background:#fee2df;color:var(--red)}
+    .stage-body{font-size:9.8px;color:#687786;margin-top:7px;line-height:1.45}
+    .stage-state{display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:9.5px;font-weight:800;color:#4e5f6f}
+    .route-stage[data-state="active"] .stage-state{color:var(--red)}
+    .route-stage[data-state="done"] .stage-state{color:var(--green)}
+    .route-mobile-toggle{display:none;width:100%;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:9px;height:36px;font-weight:700;color:var(--navy);cursor:pointer}
+
+    .site-strip{margin-top:13px;background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:0 3px 11px rgba(18,38,57,.04)}
+    .site-strip-head{padding:11px 14px 9px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .site-strip-head h2{font-size:13px;margin:0;font-weight:800}
+    .site-strip-track{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:0;overflow-x:auto;scrollbar-width:thin}
+    .site-btn{border:0;border-inline-start:1px solid var(--line);background:#fff;padding:10px;cursor:pointer;text-align:right;min-width:160px;display:grid;grid-template-columns:68px 1fr;gap:10px;align-items:center;position:relative}
+    .site-btn:first-child{border-inline-start:0}
+    .site-btn:hover{background:#fbfcfd}
+    .site-btn.selected{background:#f3f7fa;box-shadow:inset 0 -3px var(--navy)}
+    .facility-art{height:56px;border-radius:8px;background:linear-gradient(145deg,#cbd8e2,#eef2f5);position:relative;overflow:hidden;border:1px solid #d6dee5}
+    .facility-art:before{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:29px;background:#6f8799;clip-path:polygon(0 35%,18% 10%,18% 45%,40% 45%,40% 0,74% 0,74% 30%,100% 30%,100% 100%,0 100%)}
+    .facility-art:after{content:"";position:absolute;left:14px;right:14px;bottom:14px;height:12px;background:repeating-linear-gradient(90deg,#dce8ef 0 5px,#476176 5px 9px);opacity:.95}
+    .site-name{display:block;font-size:11px;font-weight:800;line-height:1.35}
+    .site-state{display:block;font-size:10px;color:var(--site-accent);font-weight:800;margin-top:3px}
+    .site-summary{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+    .site-count{position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:7px;background:color-mix(in srgb,var(--site-accent) 11%,white);color:var(--site-accent);display:grid;place-items:center;font-size:10px;font-weight:900}
+
+    .pulse-card{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 3px 11px rgba(18,38,57,.04);padding:13px}
+    .pulse-card h2{margin:0 0 3px;font-size:13px;font-weight:800}
+    .pulse-kicker{font-size:10px;color:var(--muted)}
+    .pulse-main{margin:12px 0 9px;border-radius:12px;background:linear-gradient(135deg,#fff,#fff7f6);border:1px solid #f0dfdd;padding:13px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+    .pulse-number{font-size:40px;line-height:.9;font-weight:300;color:var(--red);direction:ltr}
+    .pulse-main-copy{font-size:10px;color:#536271;text-align:left}
+    .pulse-main-copy strong{display:block;color:#172331;font-size:11px;margin-bottom:2px}
+    .pulse-list{display:grid;gap:2px}
+    .pulse-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 4px;border-bottom:1px solid #eef1f4;font-size:10.5px}
+    .pulse-row:last-child{border-bottom:0}
+    .metric{display:flex;align-items:center;gap:7px}
+    .metric-dot{width:8px;height:8px;border-radius:50%;border:2px solid currentColor}
+    .metric-value{font-weight:900;font-size:12px;direction:ltr}
+    .health-ring{width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--green) 0 72%,var(--orange) 72% 88%,var(--red) 88% 100%);position:relative;flex:0 0 auto}
+    .health-ring:after{content:"";position:absolute;inset:11px;background:#fff;border-radius:50%}
+    .health-wrap{display:flex;align-items:center;gap:14px;margin-top:11px}
+    .health-list{flex:1;display:grid;gap:7px;font-size:10.5px}
+    .health-line{display:flex;justify-content:space-between;gap:8px}
+    .decision-list{display:grid;gap:7px;margin-top:10px}
+    .decision-item{border:1px solid #edf0f3;border-radius:10px;padding:9px;background:#fbfcfd}
+    .decision-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px}
+    .decision-state{font-weight:800}
+    .decision-meta{color:var(--muted);font-size:9.5px;margin-top:3px}
+
+    .focus-overlay{position:fixed;inset:0;background:rgba(13,29,42,.12);z-index:70;opacity:0;pointer-events:none;transition:opacity .18s ease}
+    .focus-overlay.open{opacity:1;pointer-events:auto}
+    .focus-panel{position:fixed;right:0;top:0;bottom:0;width:min(430px,calc(100vw - 34px));background:#fff;z-index:75;box-shadow:-18px 0 42px rgba(15,31,46,.16);display:none;flex-direction:column;border-left:1px solid var(--line)}
+    .focus-panel.open{display:flex}
+    .focus-head{padding:15px 17px 12px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfcfd)}
+    .focus-topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .focus-topline h2{font-size:13px;margin:0;font-weight:800}
+    .close-btn{width:36px;height:36px;border:0;background:transparent;border-radius:9px;cursor:pointer;font-size:24px;line-height:1;display:grid;place-items:center}
+    .close-btn:hover{background:#f1f4f6}
+    .focus-summary{margin-top:12px;border:1px solid #f0d9d7;border-right:4px solid var(--focus-accent,var(--red));border-radius:12px;padding:12px;background:#fffaf9;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:start}
+    .focus-priority{font-size:35px;line-height:1;font-weight:300;color:var(--focus-accent,var(--red));text-align:center}
+    .focus-title{font-size:13px;font-weight:900;line-height:1.4}
+    .focus-id{font-size:10.5px;color:#3b5265;margin-top:4px}
+    .focus-time{font-size:10px;color:var(--muted);margin-top:5px}
+    .focus-tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto;background:#fff}
+    .focus-tab{border:0;background:transparent;min-width:78px;height:44px;cursor:pointer;color:#637181;font-size:11px;font-weight:700;position:relative;white-space:nowrap}
+    .focus-tab.active{color:#0f5689}
+    .focus-tab.active:after{content:"";height:2px;position:absolute;left:10px;right:10px;bottom:0;background:#0f5689}
+    .focus-body{overflow:auto;flex:1;padding:15px 17px 120px}
+    .focus-section{display:none}
+    .focus-section.active{display:block}
+    .detail-block{padding:0 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+    .detail-block:last-child{border-bottom:0}
+    .detail-block h3{font-size:12px;margin:0 0 8px;font-weight:900}
+    .detail-block p{margin:0;color:#4f6070;font-size:11px;line-height:1.75}
+    .impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .impact-item{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fbfcfd}
+    .impact-label{font-size:9.5px;color:var(--muted)}
+    .impact-value{font-size:11px;font-weight:800;margin-top:2px}
+    .asset-preview{display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:center}
+    .asset-preview .facility-art{height:76px}
+    .asset-title{font-weight:800;font-size:12px}
+    .asset-meta{font-size:10px;color:var(--muted);margin-top:4px}
+    .meta-list{display:grid;gap:0}
+    .meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #eef1f4;font-size:10.5px}
+    .meta-row:last-child{border-bottom:0}
+    .meta-row span:first-child{color:var(--muted)}
+    .meta-row strong{font-size:10.5px;text-align:left}
+    .evidence-item{border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px;background:#fbfcfd}
+    .evidence-item strong{font-size:11px;display:block}
+    .evidence-item small{font-size:9.5px;color:var(--muted)}
+    .focus-action{position:absolute;bottom:0;left:0;right:0;padding:13px 17px 17px;border-top:1px solid var(--line);background:rgba(255,255,255,.97);backdrop-filter:blur(7px)}
+    .primary-action{width:100%;height:48px;border:0;border-radius:10px;background:var(--navy);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 7px 15px rgba(6,41,67,.17)}
+    .primary-action:hover{background:#0b3655}
+    .action-note{font-size:9.5px;color:var(--muted);text-align:center;margin-top:6px}
+    .sim-state{margin-top:8px;border:1px solid #cfe5d7;background:var(--green-soft);border-radius:9px;padding:8px;color:#30664d;font-size:10px;display:none}
+
+    .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:#102b3f;color:#fff;border-radius:11px;padding:11px 14px;box-shadow:var(--shadow);z-index:110;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;max-width:min(520px,calc(100vw - 30px));font-size:11.5px;text-align:center}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .notification-pop{position:fixed;top:62px;right:20px;width:285px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px;z-index:90;display:none}
+    .notification-pop.open{display:block}
+    .notification-pop strong{display:block;font-size:12px;margin-bottom:6px}
+    .notification-pop p{font-size:10.5px;color:var(--muted);margin:0;padding:7px 0;border-top:1px solid #eef1f4}
+
+    .mobile-bar{display:none}
+    .mobile-menu-btn{display:none}
+    .mobile-pulse{display:none}
+
+    @media(max-width:1180px){
+      .app-header{grid-template-columns:180px minmax(220px,1fr) minmax(220px,330px) 220px;padding:0 14px;gap:10px}
+      .brand-sub{display:none}
+      .workspace-grid{grid-template-columns:minmax(0,1fr) 238px}
+      .ledger-head,.ledger-row{grid-template-columns:64px 1.5fr 1.1fr 1.1fr 1fr 112px}
+      .cell{padding:11px 8px}
+      .route-stage{padding:8px 6px;min-height:105px}
+      .stage-body{font-size:9.3px}
+    }
+
+    @media(max-width:980px){
+      :root{--header-h:62px;--subnav-h:0px;--rail-w:0px}
+      .app-header{height:62px;grid-template-columns:140px 1fr auto;padding:0 12px;position:sticky;top:0}
+      .brand-mark{width:34px;height:34px}.brand-title{font-size:15px}.brand-sub{display:none}
+      .scope-wrap{grid-column:2;width:100%}
+      .scope-btn{height:40px}
+      .search{display:none}
+      .user-card .user-copy{display:none}
+      .avatar{width:34px;height:34px;border-width:2px}
+      .user-zone{gap:3px}
+      .top-nav,.left-rail{display:none}
+      .workspace{margin-left:0;padding:14px 13px 82px}
+      .workspace-grid{grid-template-columns:1fr;grid-template-areas:"ledger" "pulse";gap:12px}
+      .pulse-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .pulse-card:nth-child(3){display:none}
+      .mobile-menu-btn{display:grid}
+      .notification-pop{top:56px;right:10px}
+      .mobile-bar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:10px;right:10px;bottom:10px;height:58px;background:var(--navy);color:#fff;border-radius:16px;box-shadow:0 14px 30px rgba(4,31,50,.25);z-index:45;overflow:hidden}
+      .mobile-tab{border:0;background:transparent;color:#d9e4eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9px;cursor:pointer}
+      .mobile-tab b{font-size:15px;font-weight:500;line-height:1.1}
+      .mobile-tab.active{color:#fff;background:rgba(255,255,255,.08)}
+    }
+
+    @media(max-width:760px){
+      body{font-size:13px}
+      .app-header{grid-template-columns:100px 1fr auto;gap:6px}
+      .brand{gap:6px}.brand-mark{width:30px;height:30px;border-radius:8px}.brand-title{font-size:13px}.brand-title span{display:none}
+      .notify-btn{width:34px;height:34px}.notification-pop{width:calc(100vw - 20px)}
+      .scope-btn{height:38px;padding:0 10px;border-radius:9px}.scope-label strong{font-size:11px}.scope-label small{display:none}
+      .workspace{padding:12px 10px 79px}
+      .section-head{align-items:flex-start;flex-direction:column;margin-bottom:9px;gap:8px}
+      .section-head h1{font-size:16px}
+      .ledger-controls{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none}
+      .filter-bar{flex-wrap:nowrap}.filter-btn{height:32px;white-space:nowrap;padding:0 11px}.view-mode{display:none}
+      .ledger-shell{border-radius:12px;background:transparent;border:0;box-shadow:none;overflow:visible}
+      .ledger-head{display:none}
+      .ledger-list{display:grid;gap:8px}
+      .ledger-row{display:grid;grid-template-columns:54px 1fr;grid-template-areas:"priority title" "priority meta" "action action";min-height:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(18,38,57,.04)}
+      .ledger-row:before{inset-inline-start:auto;right:0;width:4px}
+      .ledger-row.selected{box-shadow:inset 0 0 0 1px var(--row-accent),0 5px 13px rgba(18,38,57,.06)}
+      .priority-cell{grid-area:priority;border:0;border-left:1px solid #edf0f3;padding:12px 7px;justify-content:flex-start;background:#fbfcfd}
+      .priority-no{font-size:31px}.severity-mini{font-size:8px;padding:2px 5px}
+      .cell.issue-cell{grid-area:title;border:0;padding:11px 11px 4px}
+      .cell.location-cell{grid-area:meta;border:0;padding:2px 11px 4px;display:block}
+      .cell.reason-cell,.cell.owner-cell{grid-area:meta;border:0;padding:2px 11px 5px;display:none}
+      .cell.action-cell{grid-area:action;border-top:1px solid #edf0f3;border-inline-start:0;padding:7px 11px;background:#fbfcfd}
+      .row-meta{font-size:10px}.action-btn{font-size:10.5px}
+      .ledger-footer{border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff;padding:8px 10px}
+      .route-panel{padding:11px;border-radius:12px}
+      .route-title-row{margin-bottom:8px}.route-context{display:none}
+      .route-ribbon{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;direction:rtl}
+      .route-stage{display:none;min-height:91px;padding:7px}
+      .route-stage:nth-child(-n+3){display:block}
+      .route-ribbon.expanded{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .route-ribbon.expanded .route-stage{display:block}
+      .stage-head{font-size:10.5px}.stage-icon{width:23px;height:23px}.stage-body{font-size:9px}.stage-state{font-size:8.8px}
+      .route-mobile-toggle{display:block}
+      .site-strip{border-radius:12px}.site-strip-track{grid-template-columns:none;display:flex}.site-btn{min-width:210px;grid-template-columns:72px 1fr}
+      .pulse-col{display:none}
+      .mobile-pulse{display:block;margin-top:13px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px;box-shadow:0 3px 11px rgba(18,38,57,.04)}
+      .mobile-pulse-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .mobile-pulse-head h2{margin:0;font-size:12.5px;font-weight:800}
+      .mobile-pulse-total{font-size:28px;line-height:1;color:var(--red);font-weight:300;direction:ltr}
+      .mobile-pulse-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}
+      .mobile-pulse-metric{border:1px solid #edf0f3;border-radius:9px;padding:7px;background:#fbfcfd;text-align:center}
+      .mobile-pulse-metric strong{display:block;font-size:13px;direction:ltr}
+      .mobile-pulse-metric span{display:block;color:var(--muted);font-size:9px;margin-top:1px}
+      .pulse-main{margin:9px 0 6px;padding:10px}.pulse-number{font-size:34px}
+      .focus-panel{width:100%;top:54px;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -10px 35px rgba(15,31,46,.18)}
+      .focus-overlay{top:54px}
+      .focus-head{padding:11px 13px 10px}.focus-summary{margin-top:8px;padding:10px;grid-template-columns:42px 1fr}.focus-priority{font-size:31px}
+      .focus-tabs{padding:0 7px}.focus-tab{min-width:70px;height:41px}
+      .focus-body{padding:12px 13px 112px}.focus-action{padding:11px 13px 12px}.primary-action{height:45px}
+      .toast{bottom:79px}
+    }
+
+    @media(max-width:430px){
+      .app-header{grid-template-columns:82px 1fr auto;padding:0 8px}
+      .brand-mark{width:28px;height:28px}.brand-title{font-size:12px}
+      .scope-label strong{font-size:10.5px}
+      .mobile-bar{left:6px;right:6px;bottom:6px}
+      .pulse-main-copy{font-size:9.5px}
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand" aria-label="RP02 Enterprise Operations">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8.5 12 3l9 5.5v7L12 21l-9-5.5v-7Z"/><path d="m3 8.5 9 5.3 9-5.3M12 13.8V21"/><path d="M7.5 11.2v4.3l3 1.7v-4.3l-3-1.7Zm9-2.9v4.3l3-1.8V6.6l-3 1.7Z"/></svg>
+      </div>
+      <div class="brand-copy">
+        <div class="brand-title">RP02 <span>Enterprise Operations</span></div>
+        <div class="brand-sub">Enterprise Operations</div>
+      </div>
+    </div>
+
+    <div class="scope-wrap" id="scopeWrap">
+      <button class="scope-btn" id="scopeButton" aria-haspopup="listbox" aria-expanded="false">
+        <span class="scope-label"><strong id="scopeName">المنطقة الوسطى / المقر الرئيسي</strong><small id="scopeOrg">شركة مدار المرافق للتشغيل والصيانة</small></span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="scope-menu" id="scopeMenu" role="listbox" aria-label="تحديد النطاق التشغيلي"></div>
+    </div>
+
+    <label class="search">
+      <span class="sr-only">البحث في عناصر الانتباه</span>
+      <input id="searchInput" type="search" placeholder="ابحث عن موقع، أصل، عمل، أو قرار…" autocomplete="off" />
+      <span class="search-icon" aria-hidden="true"></span>
+    </label>
+
+    <div class="user-zone">
+      <button class="ghost-icon mobile-menu-btn" aria-label="فتح قائمة التنقل" data-placeholder="قائمة التنقل المدمجة متاحة في الشريط السفلي على الهاتف">☰</button>
+      <button class="notify-btn" id="notifyButton" aria-label="الإشعارات" aria-expanded="false">
+        <span aria-hidden="true">♧</span><span class="notify-dot">3</span>
+      </button>
+      <div class="user-card" aria-label="المستخدم الحالي: أحمد الحسيني، مدير التشغيل">
+        <div class="avatar" aria-hidden="true">أح</div>
+        <div class="user-copy"><div class="user-name">أحمد الحسيني</div><div class="user-role">مدير التشغيل</div></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="top-nav" aria-label="التنقل الرئيسي">
+    <button class="nav-btn active" data-nav="attention">الانتباه</button>
+    <button class="nav-btn" data-placeholder="مساحة الأعمال خارج نطاق هذا النموذج">الأعمال</button>
+    <button class="nav-btn" data-placeholder="مساحة المواقع خارج نطاق هذا النموذج">المواقع</button>
+    <button class="nav-btn" data-placeholder="مساحة التحقق خارج نطاق هذا النموذج">التحقق</button>
+    <button class="nav-btn" data-placeholder="مساحة القرارات خارج نطاق هذا النموذج">القرارات</button>
+    <button class="nav-btn" data-placeholder="مساحة المراجعات خارج نطاق هذا النموذج">المراجعات</button>
+    <button class="nav-btn" data-placeholder="مساحة التقارير خارج نطاق هذا النموذج">التقارير</button>
+  </nav>
+
+  <aside class="left-rail" aria-label="اختصارات المنتج">
+    <button class="rail-btn active" aria-label="الانتباه">●</button>
+    <button class="rail-btn" data-placeholder="الأعمال خارج نطاق S01" aria-label="الأعمال">▣</button>
+    <button class="rail-btn" data-placeholder="المواقع خارج نطاق S01" aria-label="المواقع">⌖</button>
+    <button class="rail-btn" data-placeholder="التحقق خارج نطاق S01" aria-label="التحقق">✓</button>
+    <button class="rail-btn" data-placeholder="القرارات خارج نطاق S01" aria-label="القرارات">⌁</button>
+    <button class="rail-btn" data-placeholder="التقارير خارج نطاق S01" aria-label="التقارير">▥</button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" data-placeholder="الإعدادات خارج نطاق S01" aria-label="الإعدادات">⚙</button>
+  </aside>
+
+  <main class="workspace" id="workspace">
+    <div class="workspace-grid">
+      <section class="ledger-col" aria-labelledby="attentionHeading">
+        <div class="section-head">
+          <div><h1 id="attentionHeading">أولويات الانتباه</h1><div class="section-sub" id="ledgerScopeNote">أعلى العناصر ذات الأولوية ضمن النطاق الحالي</div></div>
+          <div class="ledger-controls">
+            <div class="filter-bar" role="group" aria-label="تصفية عناصر الانتباه" id="filterBar"></div>
+            <button class="view-mode" data-placeholder="عرض الكثافة هو العرض الوحيد في هذا النموذج" aria-label="خيارات العرض">☷</button>
+          </div>
+        </div>
+
+        <div class="ledger-shell">
+          <div class="ledger-head" aria-hidden="true">
+            <div>الأولوية</div><div>ما حدث</div><div>الموقع / الأصل</div><div>السبب المباشر</div><div>المالك / الحالة</div><div>الإجراء التالي</div>
+          </div>
+          <div class="ledger-list" id="ledgerList" role="list" aria-live="polite"></div>
+          <div class="empty-state" id="emptyState"><strong>لا توجد عناصر مطابقة</strong><span>غيّر المرشح أو عبارة البحث لعرض عناصر أخرى.</span></div>
+          <div class="ledger-footer"><span id="visibleSummary">عرض 4 عناصر من أصل 23 عنصرًا يتطلب الانتباه</span><button class="link-btn" data-placeholder="قائمة الانتباه الكاملة خارج نطاق S01">عرض جميع عناصر الانتباه</button></div>
+        </div>
+
+        <section class="route-panel" aria-labelledby="routeHeading">
+          <div class="route-title-row"><h2 id="routeHeading">رحلة الموقع إلى الإجراء</h2><div class="route-context" id="routeContext">تتغير حسب عنصر الانتباه المحدد</div></div>
+          <div class="route-ribbon" id="routeRibbon"></div>
+          <button class="route-mobile-toggle" id="routeToggle" aria-expanded="false">عرض المسار التشغيلي كاملًا</button>
+        </section>
+
+        <section class="mobile-pulse" aria-label="نبض العمليات المختصر"><div class="mobile-pulse-head"><div><h2>نبض العمليات</h2><div class="pulse-kicker">النطاق الحالي</div></div><div class="mobile-pulse-total" id="mobilePulseTotal">23</div></div><div class="mobile-pulse-metrics"><div class="mobile-pulse-metric"><strong id="mobileCritical">4</strong><span>حرجة</span></div><div class="mobile-pulse-metric"><strong id="mobileVerification">7</strong><span>تحت التحقق</span></div><div class="mobile-pulse-metric"><strong id="mobileActionable">6</strong><span>جاهزة للإجراء</span></div></div></section>
+
+        <section class="site-strip" aria-labelledby="siteHeading">
+          <div class="site-strip-head"><h2 id="siteHeading">نظرة تشغيلية على المواقع</h2><button class="link-btn" data-placeholder="صفحة المواقع الكاملة خارج نطاق S01">عرض جميع المواقع</button></div>
+          <div class="site-strip-track" id="siteStrip"></div>
+        </section>
+      </section>
+
+      <aside class="pulse-col" aria-label="نبض العمليات">
+        <section class="pulse-card">
+          <h2>نبض العمليات</h2><div class="pulse-kicker">النطاق التشغيلي الحالي</div>
+          <div class="pulse-main"><div><div class="pulse-number" id="pulseTotal">23</div></div><div class="pulse-main-copy"><strong>عنصرًا يتطلب انتباهًا</strong><span id="criticalCount">4 حرجة</span></div></div>
+          <div class="pulse-list" id="pulseList"></div>
+        </section>
+        <section class="pulse-card">
+          <h2>صحة النطاق التشغيلي</h2><div class="pulse-kicker">توزيع الحالة عبر المواقع المرئية</div>
+          <div class="health-wrap"><div class="health-ring" aria-label="مؤشر صحة تشغيلي توضيحي"></div><div class="health-list"><div class="health-line"><span>طبيعي</span><strong>18</strong></div><div class="health-line"><span>تنبيه</span><strong>3</strong></div><div class="health-line"><span>حرج</span><strong>2</strong></div></div></div>
+        </section>
+        <section class="pulse-card">
+          <h2>القرارات والمراجعات المؤثرة</h2><div class="pulse-kicker">عناصر مرتبطة بمسار العمل الحالي</div>
+          <div class="decision-list"><div class="decision-item"><div class="decision-top"><span class="decision-state" style="color:var(--red)">قرار معلّق</span><span>◌</span></div><div class="decision-meta">طلب اعتماد تغيير مؤقت — منذ 15 دقيقة</div></div><div class="decision-item"><div class="decision-top"><span class="decision-state" style="color:var(--green)">مراجعة موثقة</span><span>✓</span></div><div class="decision-meta">إعادة تحقق لقراءة المعايرة — منذ 45 دقيقة</div></div><div class="decision-item"><div class="decision-top"><span class="decision-state" style="color:var(--orange)">إجراء تحت المتابعة</span><span>↗</span></div><div class="decision-meta">تصحيح تشغيلي في محطة الضخ الشمالية</div></div></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="focus-overlay" id="focusOverlay"></div>
+  <aside class="focus-panel" id="focusPanel" role="dialog" aria-modal="true" aria-labelledby="focusHeading" aria-hidden="true">
+    <div class="focus-head">
+      <div class="focus-topline"><h2 id="focusHeading">تفاصيل عنصر الانتباه</h2><button class="close-btn" id="focusClose" aria-label="إغلاق التفاصيل">×</button></div>
+      <div class="focus-summary"><div class="focus-priority" id="focusPriority">1</div><div><div class="focus-title" id="focusTitle">—</div><div class="focus-id" id="focusId">—</div><div class="focus-time" id="focusTime">—</div></div></div>
+    </div>
+    <div class="focus-tabs" role="tablist" aria-label="أقسام تفاصيل عنصر الانتباه">
+      <button class="focus-tab active" role="tab" aria-selected="true" data-tab="overview">نظرة عامة</button>
+      <button class="focus-tab" role="tab" aria-selected="false" data-tab="evidence">الأدلة</button>
+      <button class="focus-tab" role="tab" aria-selected="false" data-tab="verification">التحقق</button>
+      <button class="focus-tab" role="tab" aria-selected="false" data-tab="authority">القرارات</button>
+    </div>
+    <div class="focus-body">
+      <section class="focus-section active" data-section="overview" id="overviewSection"></section>
+      <section class="focus-section" data-section="evidence" id="evidenceSection"></section>
+      <section class="focus-section" data-section="verification" id="verificationSection"></section>
+      <section class="focus-section" data-section="authority" id="authoritySection"></section>
+    </div>
+    <div class="focus-action"><button class="primary-action" id="primaryAction">فتح تنفيذ الإصلاح</button><div class="action-note">محاكاة واجهة فقط — لا يتم تغيير أي سجل فعلي.</div><div class="sim-state" id="simState"><span class="ltr">ACTION_SIMULATED</span> — تمت محاكاة الإجراء بنجاح داخل النموذج فقط.</div></div>
+  </aside>
+
+  <div class="notification-pop" id="notificationPop"><strong>الإشعارات التشغيلية</strong><p>تمت إضافة قراءة جديدة إلى أدلة <span class="ltr">WO-1048</span>.</p><p>ما زالت معايرة <span class="ltr">VR-312</span> بانتظار إعادة التحقق.</p><p>تم تحديث مسؤول الإجراء في <span class="ltr">CA-221</span>.</p></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <nav class="mobile-bar" aria-label="التنقل المحمول">
+    <button class="mobile-tab active"><b>●</b><span>الانتباه</span></button>
+    <button class="mobile-tab" data-placeholder="الأعمال خارج نطاق S01"><b>▣</b><span>الأعمال</span></button>
+    <button class="mobile-tab" data-placeholder="المواقع خارج نطاق S01"><b>⌖</b><span>المواقع</span></button>
+    <button class="mobile-tab" data-placeholder="المزيد خارج نطاق S01"><b>•••</b><span>المزيد</span></button>
+  </nav>
+
+<script>
+(() => {
+  'use strict';
+
+  const scopeData = {
+    central: {
+      name: 'المنطقة الوسطى / المقر الرئيسي',
+      subtitle: 'النطاق الافتراضي — عرض متعدد المواقع دون منح صلاحية إجراء تلقائية',
+      pulse: { total: 23, critical: 4, verification: 7, actionable: 6 },
+      records: ['hvac','leak','calibration','decision'],
+      selectedSite: 'hq'
+    },
+    hq: {
+      name: 'المقر الرئيسي',
+      subtitle: 'مبنى الخدمات الرئيسي',
+      pulse: { total: 8, critical: 2, verification: 2, actionable: 3 },
+      records: ['hvac','decision'],
+      selectedSite: 'hq'
+    },
+    operations: {
+      name: 'مجمع العمليات',
+      subtitle: 'مبنى العمليات والمرافق',
+      pulse: { total: 6, critical: 1, verification: 1, actionable: 2 },
+      records: ['leak','decision'],
+      selectedSite: 'ops'
+    },
+    northPump: {
+      name: 'محطة الضخ الشمالية',
+      subtitle: 'محطة تشغيل وضخ المياه',
+      pulse: { total: 5, critical: 0, verification: 3, actionable: 1 },
+      records: ['calibration'],
+      selectedSite: 'pump'
+    }
+  };
+
+  const sites = [
+    {id:'hq', scope:'hq', name:'المقر الرئيسي', sub:'مبنى الخدمات الرئيسي', state:'حرج', count:3, accent:'#c92b2b', summary:'2 حرجة · 1 قرار معلّق'},
+    {id:'ops', scope:'operations', name:'مجمع العمليات', sub:'مبنى العمليات', state:'تنبيه', count:2, accent:'#e97713', summary:'تسرب نشط · إجراء مطلوب'},
+    {id:'pump', scope:'northPump', name:'محطة الضخ الشمالية', sub:'خط المياه الرئيسي', state:'يتطلب تحققًا', count:1, accent:'#bd8400', summary:'إعادة معايرة بانتظار التحقق'},
+    {id:'warehouse', scope:'central', name:'المستودع المركزي', sub:'مستودع المواد', state:'تنبيه', count:2, accent:'#e97713', summary:'ملاحظتان تشغيليتان'},
+    {id:'dc', scope:'central', name:'مركز البيانات', sub:'غرفة التحكم', state:'طبيعي', count:0, accent:'#21845a', summary:'لا توجد أولوية حرجة'}
+  ];
+
+  const records = {
+    hvac: {
+      id:'hvac', priority:1, severity:'critical', severityLabel:'حرجة', filter:'critical', accent:'#c92b2b',
+      title:'توقف وحدة مناولة الهواء', work:'WO-1048', deviation:'DEV-203', asset:'AHU-07',
+      site:'المقر الرئيسي', siteId:'hq', location:'مبنى الخدمات الرئيسي', reason:'ارتفاع حرارة متكرر وتجاوز حد الاهتزاز المسجل.',
+      owner:'فريق الصيانة الميكانيكية', ownerShort:'الصيانة الميكانيكية', updated:'منذ 8 دقائق',
+      status:'إيقاف جزئي للحماية', state:'يتطلب إجراء', action:'فتح تنفيذ الإصلاح',
+      description:'توقف كامل لوحدة AHU-07 لمدة 45 دقيقة بعد ارتفاع متكرر في درجة الحرارة وتجاوز حد الاهتزاز المسجل في المحمل.',
+      impact:'راحة حرارية متأثرة في منطقة واحدة', capacity:'كفاءة تهوية منخفضة مؤقتًا',
+      evidence:['سجل اهتزاز آخر 30 دقيقة','صورتان من فحص المحمل','قراءة حرارة موثقة 86°C'],
+      verification:'2 من 5 نقاط تحقق مكتملة. التحقق النهائي غير مكتمل ولا يمكن اعتبار الحالة مغلقة.',
+      authority:'فتح تنفيذ الإصلاح مسموح لمدير التشغيل. الإغلاق النهائي يتطلب تحققًا مستقلًا بعد التنفيذ.',
+      decision:'إصلاح فوري ضمن صلاحية التشغيل الحالية',
+      route:[
+        ['الموقع','AHU-07 — المقر الرئيسي','done','محدد'],
+        ['الإشارة','حرارة واهتزاز خارج الحد','active','نشطة'],
+        ['الأدلة','3 عناصر موثقة','done','متاحة'],
+        ['التحقق','2/5 نقاط مكتملة','pending','قيد التحقق'],
+        ['القرار','إصلاح فوري','done','مسموح'],
+        ['الإجراء','فتح تنفيذ الإصلاح','pending','جاهز'],
+        ['النتيجة','تأكيد الإصلاح ثم المراقبة','blocked','لاحقًا']
+      ]
+    },
+    leak: {
+      id:'leak', priority:2, severity:'high', severityLabel:'عالية', filter:'high', accent:'#e97713',
+      title:'تسرب مياه في خط التغذية', work:'CA-221', deviation:'DEV-118', asset:'UTIL-04',
+      site:'مجمع العمليات', siteId:'ops', location:'ممر الخدمات — القطاع B', reason:'تآكل ظاهر عند وصلة التغذية مع انخفاض ضغط محلي.',
+      owner:'فريق المرافق', ownerShort:'المرافق', updated:'منذ 22 دقيقة',
+      status:'عزل موضعي مطبق', state:'يتطلب إجراء', action:'مراجعة الطلب',
+      description:'تم رصد تسرب محدود في وصلة تغذية المياه داخل ممر الخدمات. جرى تطبيق عزل موضعي مؤقت لحماية المنطقة إلى حين اعتماد الإجراء التصحيحي.',
+      impact:'احتمال اتساع التسرب', capacity:'الخدمة مستمرة عبر مسار بديل',
+      evidence:['صورة موثقة لموقع الوصلة','قراءة ضغط قبل العزل وبعده','ملاحظة فنية من فريق المرافق'],
+      verification:'تم التحقق من نجاح العزل المؤقت. لم يتم التحقق من الإصلاح الدائم بعد.',
+      authority:'المراجعة مسموحة ضمن النطاق. تنفيذ استبدال الوصلة يتطلب اعتماد أمر العمل.',
+      decision:'طلب إصلاح تصحيحي بانتظار المراجعة',
+      route:[
+        ['الموقع','مجمع العمليات — القطاع B','done','محدد'],
+        ['الإشارة','تسرب وانخفاض ضغط','done','موثقة'],
+        ['الأدلة','3 عناصر مرفقة','done','متاحة'],
+        ['التحقق','العزل المؤقت محقق','done','مكتمل'],
+        ['القرار','طلب إصلاح تصحيحي','active','بانتظار مراجعة'],
+        ['الإجراء','مراجعة الطلب','pending','مطلوب'],
+        ['النتيجة','تحقق بعد الاستبدال','blocked','لاحقًا']
+      ]
+    },
+    calibration: {
+      id:'calibration', priority:3, severity:'medium', severityLabel:'متوسطة', filter:'medium', accent:'#bd8400',
+      title:'تأخر التحقق من حساسات الضغط', work:'VR-312', deviation:'DEV-054', asset:'PT-19/20',
+      site:'محطة الضخ الشمالية', siteId:'pump', location:'لوحة القياس الرئيسية', reason:'قراءات خارج نطاق المعايرة بعد صيانة مجدولة.',
+      owner:'فريق المعايرة', ownerShort:'المعايرة', updated:'منذ 45 دقيقة',
+      status:'التحقق غير مكتمل', state:'يتطلب تحققًا', action:'متابعة التحقق',
+      description:'أظهرت قراءات حساسي الضغط انحرافًا عن نطاق المعايرة بعد الصيانة المجدولة. لا توجد موافقة على إعادة الحساسين إلى الحالة النهائية قبل إكمال التحقق.',
+      impact:'موثوقية القياس منخفضة', capacity:'التشغيل مستمر بقراءة احتياطية',
+      evidence:['شهادة معايرة سابقة','قراءات قبل الصيانة وبعدها','ملاحظة فنية من المختبر'],
+      verification:'إعادة التحقق مطلوبة. نتيجة التحقق السابقة مرفوضة بسبب فرق القراءة بين الحساس المرجعي والحساس التشغيلي.',
+      authority:'فريق المعايرة يرفع نتيجة التحقق؛ اعتماد الإغلاق النهائي يتم من جهة تحقق مستقلة.',
+      decision:'إعادة معايرة ثم تحقق مستقل',
+      route:[
+        ['الموقع','محطة الضخ الشمالية','done','محدد'],
+        ['الإشارة','انحراف قراءة','done','موثقة'],
+        ['الأدلة','3 قياسات مرتبطة','done','متاحة'],
+        ['التحقق','النتيجة السابقة مرفوضة','active','إعادة تحقق'],
+        ['القرار','إعادة معايرة','done','محدد'],
+        ['الإجراء','متابعة التحقق','pending','مطلوب'],
+        ['النتيجة','اعتماد القراءة','blocked','لاحقًا']
+      ]
+    },
+    decision: {
+      id:'decision', priority:4, severity:'low', severityLabel:'منخفضة', filter:'action', accent:'#557085',
+      title:'طلب اعتماد تغيير مؤقت في التشغيل', work:'DEC-118', deviation:'DEV-203', asset:'CH-118',
+      site:'المقر الرئيسي', siteId:'hq', location:'مبنى الخدمات الرئيسي', reason:'تغيير مؤقت في جدول التشغيل الليلي يحتاج قرارًا موثقًا.',
+      owner:'مكتب التشغيل', ownerShort:'مكتب التشغيل', updated:'منذ ساعة',
+      status:'قرار معلّق', state:'إجراء مطلوب', action:'عرض القرار',
+      description:'تم اقتراح تغيير مؤقت في جدول التشغيل الليلي لتخفيف الحمل خلال أعمال الصيانة. لا يُنفّذ التغيير قبل صدور قرار موثق ضمن حدود الصلاحية.',
+      impact:'تأثير محدود على جدول التشغيل', capacity:'لا تغيير قبل اعتماد القرار',
+      evidence:['مقارنة الحمل الحالية','خطة التغيير المؤقت','ملاحظة مسؤول المناوبة'],
+      verification:'المعلومات التشغيلية مكتملة، لكن القرار لم يصدر بعد.',
+      authority:'مدير التشغيل مخول بالمراجعة. القرار يجب أن يُسجل صراحة ولا ينتج عن صلاحية المشاهدة وحدها.',
+      decision:'قرار معلّق بخصوص التغيير المؤقت',
+      route:[
+        ['الموقع','المقر الرئيسي','done','محدد'],
+        ['الإشارة','حاجة لتغيير الجدول','done','موثقة'],
+        ['الأدلة','خطة وحمل تشغيلي','done','متاحة'],
+        ['التحقق','المعلومات مكتملة','done','مكتمل'],
+        ['القرار','اعتماد التغيير المؤقت','active','معلّق'],
+        ['الإجراء','عرض القرار','pending','مطلوب'],
+        ['النتيجة','مراقبة الحمل','blocked','لاحقًا']
+      ]
+    }
+  };
+
+  const filters = [
+    {id:'all',label:'الكل'},
+    {id:'critical',label:'حرجة'},
+    {id:'high',label:'عالية'},
+    {id:'medium',label:'متوسطة'},
+    {id:'action',label:'إجراءات مطلوبة'}
+  ];
+
+  let currentScope = 'central';
+  let currentFilter = 'all';
+  let searchTerm = '';
+  let selectedRecord = null;
+  let lastFocused = null;
+
+  const el = id => document.getElementById(id);
+  const ledgerList = el('ledgerList');
+  const filterBar = el('filterBar');
+  const scopeMenu = el('scopeMenu');
+  const focusPanel = el('focusPanel');
+  const focusOverlay = el('focusOverlay');
+  const toast = el('toast');
+
+  function isolate(value){ return `<span class="ltr">${value}</span>`; }
+  function esc(value){ return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function mixed(value){ return esc(value).replace(/\b([A-Z]{2,8}-[A-Z0-9]+(?:\/[A-Z0-9]+)?)\b/g, '<span class="ltr">$1</span>'); }
+
+  function getScopeRecords(){
+    return scopeData[currentScope].records.map(id => records[id]);
+  }
+
+  function visibleRecords(){
+    const all = getScopeRecords();
+    return all.filter(r => {
+      const filterOk = currentFilter === 'all' || r.filter === currentFilter || (currentFilter === 'action' && ['يتطلب إجراء','إجراء مطلوب'].includes(r.state));
+      const hay = `${r.title} ${r.work} ${r.deviation} ${r.asset} ${r.site} ${r.location} ${r.reason}`.toLowerCase();
+      const searchOk = !searchTerm || hay.includes(searchTerm.toLowerCase());
+      return filterOk && searchOk;
+    });
+  }
+
+  function renderFilters(){
+    const all = getScopeRecords();
+    filterBar.innerHTML = filters.map(f => {
+      const count = f.id === 'all' ? all.length : all.filter(r => r.filter === f.id || (f.id === 'action' && ['يتطلب إجراء','إجراء مطلوب'].includes(r.state))).length;
+      return `<button class="filter-btn ${currentFilter===f.id?'active':''}" data-filter="${f.id}" aria-pressed="${currentFilter===f.id}"><span>${f.label}</span><span class="filter-count">${count}</span></button>`;
+    }).join('');
+  }
+
+  function renderLedger(){
+    const list = visibleRecords();
+    ledgerList.innerHTML = list.map(r => `
+      <article class="ledger-row ${selectedRecord===r.id?'selected':''}" role="listitem" tabindex="0" data-record="${r.id}" style="--row-accent:${r.accent}" aria-label="الأولوية ${r.priority}: ${esc(r.title)}">
+        <div class="cell priority-cell"><div class="priority-no">${r.priority}</div><div class="severity-mini">${r.severityLabel}</div></div>
+        <div class="cell issue-cell"><div class="row-title">${esc(r.title)}</div><div class="row-meta">${isolate(r.work)} / ${isolate(r.deviation)} · <strong>${esc(r.status)}</strong></div><div class="status-line" style="color:${r.accent}"><span class="status-dot"></span><span>${esc(r.updated)}</span></div></div>
+        <div class="cell location-cell"><div class="row-title" style="font-size:11.5px">${isolate(r.asset)}</div><div class="row-meta">${esc(r.site)}<br>${esc(r.location)}</div></div>
+        <div class="cell reason-cell"><div class="row-meta" style="color:#394c5d">${esc(r.reason)}</div></div>
+        <div class="cell owner-cell"><div class="owner-stack"><div class="tiny-avatars"><span class="tiny-avatar">م</span><span class="tiny-avatar">ف</span></div><div><div class="row-meta"><strong>${esc(r.ownerShort)}</strong></div><div class="row-meta">${esc(r.state)}</div></div></div></div>
+        <div class="cell action-cell"><button class="action-btn" data-open="${r.id}"><span>${esc(r.action)}</span><span class="action-arrow">←</span></button></div>
+      </article>
+    `).join('');
+    el('emptyState').style.display = list.length ? 'none' : 'block';
+    const total = scopeData[currentScope].pulse.total;
+    el('visibleSummary').textContent = list.length ? `عرض ${list.length} من أعلى عناصر الانتباه — ${total} عنصرًا في النطاق` : `لا توجد عناصر مطابقة — ${total} عنصرًا في النطاق`;
+  }
+
+  function renderPulse(){
+    const p = scopeData[currentScope].pulse;
+    el('pulseTotal').textContent = p.total;
+    el('criticalCount').textContent = `${p.critical} حرجة`;
+    el('mobilePulseTotal').textContent = p.total;
+    el('mobileCritical').textContent = p.critical;
+    el('mobileVerification').textContent = p.verification;
+    el('mobileActionable').textContent = p.actionable;
+    el('pulseList').innerHTML = `
+      <div class="pulse-row"><span class="metric"><span class="metric-dot" style="color:var(--orange)"></span>تحت التحقق</span><span class="metric-value">${p.verification}</span></div>
+      <div class="pulse-row"><span class="metric"><span class="metric-dot" style="color:var(--green)"></span>جاهزة للإجراء</span><span class="metric-value">${p.actionable}</span></div>
+      <div class="pulse-row"><span class="metric"><span class="metric-dot" style="color:var(--red)"></span>حرجة</span><span class="metric-value">${p.critical}</span></div>`;
+  }
+
+  function renderSites(){
+    const selectedSite = scopeData[currentScope].selectedSite;
+    el('siteStrip').innerHTML = sites.map(s => `
+      <button class="site-btn ${selectedSite===s.id?'selected':''}" data-site="${s.id}" style="--site-accent:${s.accent}" aria-label="${esc(s.name)}، الحالة ${esc(s.state)}">
+        <span class="facility-art" aria-hidden="true"></span>
+        <span><span class="site-name">${esc(s.name)}</span><span class="site-state">${esc(s.state)}</span><span class="site-summary">${esc(s.summary)}</span></span>
+        <span class="site-count" aria-label="${s.count} عناصر انتباه">${s.count}</span>
+      </button>`).join('');
+  }
+
+  function renderRoute(record){
+    const route = record ? record.route : [
+      ['الموقع','اختر عنصر انتباه','pending','بانتظار الاختيار'],['الإشارة','—','blocked','—'],['الأدلة','—','blocked','—'],['التحقق','—','blocked','—'],['القرار','—','blocked','—'],['الإجراء','—','blocked','—'],['النتيجة','—','blocked','—']
+    ];
+    const icons = ['⌖','!','▤','✓','◆','→','●'];
+    el('routeRibbon').innerHTML = route.map((s,i) => `<div class="route-stage" data-state="${s[2]}"><div class="stage-head"><span class="stage-icon" aria-hidden="true">${icons[i]}</span><span>${esc(s[0])}</span></div><div class="stage-body">${mixed(s[1])}</div><div class="stage-state">${s[2]==='done'?'✓':s[2]==='active'?'●':s[2]==='pending'?'◌':'—'} ${esc(s[3])}</div></div>`).join('');
+    el('routeContext').innerHTML = record ? `${esc(record.title)} · ${isolate(record.work)}` : 'تتغير حسب عنصر الانتباه المحدد';
+  }
+
+  function renderScopeMenu(){
+    scopeMenu.innerHTML = Object.entries(scopeData).map(([id,s]) => `<button class="scope-option" role="option" aria-selected="${currentScope===id}" aria-current="${currentScope===id}" data-scope="${id}"><span><strong>${esc(s.name)}</strong><small>${esc(s.subtitle)}</small></span><span class="auth-note">عرض تشغيلي</span></button>`).join('');
+  }
+
+  function applyScope(scopeId, source='selector'){
+    if(!scopeData[scopeId]) return;
+    currentScope = scopeId;
+    currentFilter = 'all'; searchTerm = ''; el('searchInput').value = '';
+    selectedRecord = null; closeFocus(false);
+    const s = scopeData[scopeId];
+    el('scopeName').textContent = s.name;
+    el('ledgerScopeNote').textContent = `أعلى العناصر ذات الأولوية ضمن: ${s.name}`;
+    renderAll();
+    if(source !== 'initial') showToast(`تم تغيير العرض إلى «${s.name}». صلاحية المشاهدة لا تعني صلاحية الإجراء تلقائيًا.`);
+  }
+
+  function renderAll(){
+    renderScopeMenu(); renderFilters(); renderLedger(); renderPulse(); renderSites(); renderRoute(selectedRecord ? records[selectedRecord] : getScopeRecords()[0]);
+  }
+
+  function detailHTML(r){
+    el('overviewSection').innerHTML = `
+      <div class="detail-block"><h3>الوصف</h3><p>${mixed(r.description)}</p></div>
+      <div class="detail-block"><h3>الأثر التشغيلي</h3><div class="impact-grid"><div class="impact-item"><div class="impact-label">الأثر</div><div class="impact-value">${esc(r.impact)}</div></div><div class="impact-item"><div class="impact-label">استمرارية الخدمة</div><div class="impact-value">${esc(r.capacity)}</div></div></div></div>
+      <div class="detail-block"><h3>الأصل المرتبط</h3><div class="asset-preview"><span class="facility-art" aria-hidden="true"></span><div><div class="asset-title">${isolate(r.asset)}</div><div class="asset-meta">${esc(r.site)}<br>${esc(r.location)}</div><button class="link-btn" data-placeholder="صفحة الأصل خارج نطاق S01">فتح صفحة الأصل</button></div></div></div>
+      <div class="detail-block"><div class="meta-list"><div class="meta-row"><span>المالك</span><strong>${esc(r.owner)}</strong></div><div class="meta-row"><span>آخر تحديث</span><strong>${esc(r.updated)}</strong></div><div class="meta-row"><span>الحالة</span><strong>${esc(r.status)}</strong></div><div class="meta-row"><span>القرار الحالي</span><strong>${esc(r.decision)}</strong></div></div></div>`;
+    el('evidenceSection').innerHTML = `<div class="detail-block"><h3>الأدلة المرتبطة</h3><p>هذه بيانات تجريبية محلية لتوضيح بنية السياق، وليست دليلًا تشغيليًا فعليًا.</p></div>${r.evidence.map((e,i)=>`<div class="evidence-item"><strong>${i+1}. ${esc(e)}</strong><small>حالة السجل: متاح للمراجعة داخل النموذج</small></div>`).join('')}`;
+    el('verificationSection').innerHTML = `<div class="detail-block"><h3>حالة التحقق</h3><p>${esc(r.verification)}</p></div><div class="impact-item"><div class="impact-label">مبدأ الحالة</div><div class="impact-value">طلب الإغلاق لا يساوي إغلاقًا نهائيًا، وغياب الدليل أو رفض التحقق يبقي الحالة مفتوحة.</div></div>`;
+    el('authoritySection').innerHTML = `<div class="detail-block"><h3>الصلاحية والقرار</h3><p>${esc(r.authority)}</p></div><div class="detail-block"><h3>الإجراء التالي المسموح</h3><div class="impact-item"><div class="impact-label">الإجراء</div><div class="impact-value">${esc(r.action)}</div></div></div>`;
+  }
+
+  function openFocus(id, trigger){
+    const r = records[id]; if(!r) return;
+    selectedRecord = id; lastFocused = trigger || document.activeElement;
+    document.documentElement.style.setProperty('--focus-accent',r.accent);
+    el('focusPriority').textContent = r.priority;
+    el('focusTitle').textContent = r.title;
+    el('focusId').innerHTML = `${isolate(r.work)} / ${isolate(r.deviation)} · ${isolate(r.asset)}`;
+    el('focusTime').textContent = r.updated;
+    el('primaryAction').textContent = r.action;
+    el('simState').style.display = 'none';
+    detailHTML(r); setFocusTab('overview'); renderLedger(); renderRoute(r);
+    focusOverlay.classList.add('open'); focusPanel.classList.add('open'); focusPanel.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    setTimeout(()=>el('focusClose').focus(),50);
+  }
+
+  function closeFocus(restore=true){
+    focusOverlay.classList.remove('open'); focusPanel.classList.remove('open'); focusPanel.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+    selectedRecord = null; renderLedger(); renderRoute(getScopeRecords()[0]);
+    if(restore && lastFocused && typeof lastFocused.focus==='function') setTimeout(()=>lastFocused.focus(),30);
+  }
+
+  function setFocusTab(tab){
+    document.querySelectorAll('.focus-tab').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
+    document.querySelectorAll('.focus-section').forEach(s=>s.classList.toggle('active',s.dataset.section===tab));
+  }
+
+  let toastTimer;
+  function showToast(message){
+    toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.classList.remove('show'),3100);
+  }
+
+  document.addEventListener('click', e => {
+    const filter = e.target.closest('[data-filter]'); if(filter){ currentFilter=filter.dataset.filter; renderFilters(); renderLedger(); return; }
+    const row = e.target.closest('.ledger-row'); if(row && !e.target.closest('button')){ openFocus(row.dataset.record,row); return; }
+    const open = e.target.closest('[data-open]'); if(open){ e.stopPropagation(); openFocus(open.dataset.open,open); return; }
+    const sc = e.target.closest('[data-scope]'); if(sc){ applyScope(sc.dataset.scope); scopeMenu.classList.remove('open'); el('scopeButton').setAttribute('aria-expanded','false'); return; }
+    const site = e.target.closest('[data-site]'); if(site){ const s=sites.find(x=>x.id===site.dataset.site); if(s) applyScope(s.scope,'site'); return; }
+    const ph = e.target.closest('[data-placeholder]'); if(ph){ showToast(`${ph.dataset.placeholder}. لم يتم فتح صفحة إضافية.`); return; }
+  });
+
+  ledgerList.addEventListener('keydown', e => { if((e.key==='Enter'||e.key===' ') && e.target.classList.contains('ledger-row')){e.preventDefault();openFocus(e.target.dataset.record,e.target);} });
+
+  el('scopeButton').addEventListener('click',()=>{const open=scopeMenu.classList.toggle('open');el('scopeButton').setAttribute('aria-expanded',String(open));});
+  document.addEventListener('click',e=>{if(!el('scopeWrap').contains(e.target)){scopeMenu.classList.remove('open');el('scopeButton').setAttribute('aria-expanded','false');}});
+  el('searchInput').addEventListener('input',e=>{searchTerm=e.target.value.trim();renderLedger();});
+  el('focusClose').addEventListener('click',()=>closeFocus());
+  focusOverlay.addEventListener('click',()=>closeFocus());
+  document.querySelectorAll('.focus-tab').forEach(b=>b.addEventListener('click',()=>setFocusTab(b.dataset.tab)));
+  el('primaryAction').addEventListener('click',()=>{ const r=records[selectedRecord]; if(!r)return; el('simState').style.display='block'; showToast(`تمت محاكاة «${r.action}» فقط — لا يوجد تغيير في نظام حقيقي.`); });
+  el('routeToggle').addEventListener('click',()=>{const r=el('routeRibbon');const expanded=r.classList.toggle('expanded');el('routeToggle').textContent=expanded?'إخفاء التفاصيل الإضافية':'عرض المسار التشغيلي كاملًا';el('routeToggle').setAttribute('aria-expanded',String(expanded));});
+  el('notifyButton').addEventListener('click',()=>{const p=el('notificationPop');const open=p.classList.toggle('open');el('notifyButton').setAttribute('aria-expanded',String(open));});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){ if(focusPanel.classList.contains('open')) closeFocus(); else {scopeMenu.classList.remove('open');el('notificationPop').classList.remove('open');} }});
+
+  applyScope('central','initial');
+})();
+</script>
+</body>
+</html>
