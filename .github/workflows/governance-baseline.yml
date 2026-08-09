@@ -1,0 +1,276 @@
+name: Governance Baseline
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+      - "docs/**"
+      - ".github/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+      - "docs/**"
+      - ".github/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-governance-head:
+    name: Validate exact governance head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact checkout
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          echo "Validation target: raw head ${actual_sha}"
+          test "$actual_sha" = "$EXPECTED_SHA"
+
+      - name: Verify required governance files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "README.md"
+            "AGENTS.md"
+            "CONTRIBUTING.md"
+            "docs/governance/EXECUTION_AND_SAFETY_RULES.md"
+            "docs/governance/EVIDENCE_AND_HANDOFF.md"
+            "docs/architecture/README.md"
+            "docs/adr/README.md"
+            ".github/pull_request_template.md"
+          )
+          for path in "${required[@]}"; do
+            test -s "$path" || { echo "Missing or empty required file: $path"; exit 1; }
+          done
+
+      - name: Validate repository-relative Markdown links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import re
+          import sys
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit
+
+          files = [
+              Path("README.md"),
+              Path("AGENTS.md"),
+              Path("CONTRIBUTING.md"),
+              Path("docs/governance/EXECUTION_AND_SAFETY_RULES.md"),
+              Path("docs/governance/EVIDENCE_AND_HANDOFF.md"),
+              Path("docs/architecture/README.md"),
+              Path("docs/adr/README.md"),
+              Path(".github/pull_request_template.md"),
+          ]
+
+          link_pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+          heading_pattern = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
+
+          def github_slugs(text: str) -> set[str]:
+              slugs: set[str] = set()
+              counts: dict[str, int] = {}
+              for heading in heading_pattern.findall(text):
+                  heading = re.sub(r"<[^>]+>", "", heading)
+                  base = heading.lower().strip()
+                  base = re.sub(r"[^\w\-\s]", "", base, flags=re.UNICODE)
+                  base = re.sub(r"\s+", "-", base)
+                  base = re.sub(r"-+", "-", base).strip("-")
+                  index = counts.get(base, 0)
+                  counts[base] = index + 1
+                  slugs.add(base if index == 0 else f"{base}-{index}")
+              return slugs
+
+          errors: list[str] = []
+          for source in files:
+              text = source.read_text(encoding="utf-8")
+              for raw_target in link_pattern.findall(text):
+                  target = raw_target.strip()
+                  if target.startswith("<") and ">" in target:
+                      target = target[1:target.index(">")]
+                  else:
+                      target = target.split(maxsplit=1)[0]
+
+                  parsed = urlsplit(target)
+                  if parsed.scheme or target.startswith("//"):
+                      continue
+
+                  relative_path = unquote(parsed.path)
+                  target_file = source if not relative_path else (source.parent / relative_path).resolve()
+                  root = Path.cwd().resolve()
+                  try:
+                      target_file.relative_to(root)
+                  except ValueError:
+                      errors.append(f"{source}: link escapes repository: {target}")
+                      continue
+
+                  if not target_file.exists():
+                      errors.append(f"{source}: missing link target: {target}")
+                      continue
+
+                  if parsed.fragment and target_file.is_file() and target_file.suffix.lower() == ".md":
+                      slugs = github_slugs(target_file.read_text(encoding="utf-8"))
+                      fragment = unquote(parsed.fragment).lower()
+                      if fragment not in slugs:
+                          errors.append(f"{source}: missing Markdown anchor: {target}")
+
+          if errors:
+              print("\n".join(errors), file=sys.stderr)
+              raise SystemExit(1)
+          print("Repository-relative Markdown links resolved.")
+          PY
+
+      - name: Determine changed files
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          else
+            base="$PUSH_BEFORE_SHA"
+            head="$PUSH_HEAD_SHA"
+          fi
+
+          if [[ -z "$base" || "$base" =~ ^0+$ ]] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            git diff-tree --no-commit-id --name-only -r "$head"
+          else
+            git diff --name-only "$base" "$head"
+          fi | sed '/^$/d' | tee /tmp/changed-files.txt
+
+      - name: Reject implementation paths in governance workstreams
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'governance/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden='^(src|app|apps|api|server|client|frontend|backend|database|db|migrations|infra|deploy|deployment|terraform|k8s|helm)/'
+          if grep -E "$forbidden" /tmp/changed-files.txt; then
+            echo "A governance workstream changed implementation or deployment paths."
+            exit 1
+          fi
+
+      - name: Reject newly changed common secret files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx)|id_rsa|credentials\.json)$' /tmp/changed-files.txt; then
+            echo "A changed path resembles a secret-bearing file."
+            exit 1
+          fi
+
+  validate-governance-merge-context:
+    name: Validate pull-request merge context
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub pull-request merge ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identify merge-context checkout
+        shell: bash
+        env:
+          EXPECTED_MERGE_SHA: ${{ github.sha }}
+          ASSOCIATED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          echo "Validation target: PR merge context ${actual_sha} associated with raw head ${ASSOCIATED_HEAD_SHA}"
+          test "$actual_sha" = "$EXPECTED_MERGE_SHA"
+
+      - name: Verify required files in merge context
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "README.md"
+            "AGENTS.md"
+            "CONTRIBUTING.md"
+            "docs/governance/EXECUTION_AND_SAFETY_RULES.md"
+            "docs/governance/EVIDENCE_AND_HANDOFF.md"
+            "docs/architecture/README.md"
+            "docs/adr/README.md"
+            ".github/pull_request_template.md"
+          )
+          for path in "${required[@]}"; do
+            test -s "$path" || { echo "Missing or empty required file in merge context: $path"; exit 1; }
+          done
+
+      - name: Validate merge-context Markdown links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import re
+          import sys
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit
+
+          files = [
+              Path("README.md"),
+              Path("AGENTS.md"),
+              Path("CONTRIBUTING.md"),
+              Path("docs/governance/EXECUTION_AND_SAFETY_RULES.md"),
+              Path("docs/governance/EVIDENCE_AND_HANDOFF.md"),
+              Path("docs/architecture/README.md"),
+              Path("docs/adr/README.md"),
+              Path(".github/pull_request_template.md"),
+          ]
+          pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+          errors: list[str] = []
+          root = Path.cwd().resolve()
+
+          for source in files:
+              text = source.read_text(encoding="utf-8")
+              for raw_target in pattern.findall(text):
+                  target = raw_target.strip()
+                  if target.startswith("<") and ">" in target:
+                      target = target[1:target.index(">")]
+                  else:
+                      target = target.split(maxsplit=1)[0]
+                  parsed = urlsplit(target)
+                  if parsed.scheme or target.startswith("//"):
+                      continue
+                  relative_path = unquote(parsed.path)
+                  target_file = source if not relative_path else (source.parent / relative_path).resolve()
+                  try:
+                      target_file.relative_to(root)
+                  except ValueError:
+                      errors.append(f"{source}: link escapes repository: {target}")
+                      continue
+                  if not target_file.exists():
+                      errors.append(f"{source}: missing link target: {target}")
+
+          if errors:
+              print("\n".join(errors), file=sys.stderr)
+              raise SystemExit(1)
+          print("Merge-context repository-relative Markdown links resolved.")
+          PY
