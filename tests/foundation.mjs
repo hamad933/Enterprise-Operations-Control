@@ -7,6 +7,7 @@ import {
   canActOnRecord,
   createAppState,
   routeForRecord,
+  selectScope,
   selectSite,
   setFilter,
   setSearch,
@@ -22,24 +23,57 @@ assert.equal(defaultState.selectedSiteId, 'hq');
 assert.deepEqual(Object.values(records).map((record) => record.work), ['WO-1048', 'CA-221', 'VR-312', 'DEC-118']);
 assert.deepEqual(records.hvac.route.map((stage) => stage.key), routeStageOrder);
 
-const warehouseState = selectSite(defaultState, 'warehouse');
-assert.equal(warehouseState.scopeId, 'central');
-assert.equal(warehouseState.selectedSiteId, 'warehouse');
-assert.equal(visibleRecords(warehouseState).length, 4);
-assert.equal(canActOnRecord(warehouseState, records.hvac), false);
+const centralRecordIds = ['hvac', 'leak', 'calibration', 'decision'];
+
+function assertCentralSiteSelection(siteId, allowedRecordId = null) {
+  const next = selectSite(defaultState, siteId);
+  assert.equal(next.scopeId, 'central', `${siteId} must not narrow the operational scope`);
+  assert.equal(next.selectedSiteId, siteId);
+  assert.deepEqual(visibleRecords(next).map((record) => record.id), centralRecordIds);
+
+  for (const record of Object.values(records)) {
+    const shouldAllow = record.id === allowedRecordId;
+    assert.equal(
+      canActOnRecord(next, record),
+      shouldAllow,
+      `${siteId} authority mismatch for ${record.id}`
+    );
+  }
+
+  return next;
+}
+
+const operationsSiteState = assertCentralSiteSelection('ops', 'leak');
+const operationsSimulated = simulateAction(operationsSiteState, 'leak');
+assert.notEqual(operationsSimulated, operationsSiteState);
+assert.ok(operationsSimulated.simulatedRecordIds.includes('leak'));
+assert.equal(simulateAction(operationsSiteState, 'hvac'), operationsSiteState);
+
+const pumpSiteState = assertCentralSiteSelection('pump', 'calibration');
+const pumpSimulated = simulateAction(pumpSiteState, 'calibration');
+assert.notEqual(pumpSimulated, pumpSiteState);
+assert.ok(pumpSimulated.simulatedRecordIds.includes('calibration'));
+assert.equal(simulateAction(pumpSiteState, 'leak'), pumpSiteState);
+
+const warehouseState = assertCentralSiteSelection('warehouse');
 assert.equal(simulateAction(warehouseState, 'hvac'), warehouseState);
+assert.equal(simulateAction(warehouseState, 'leak'), warehouseState);
 
-const dcState = selectSite(defaultState, 'dc');
-assert.equal(dcState.scopeId, 'central');
-assert.equal(dcState.selectedSiteId, 'dc');
-assert.equal(visibleRecords(dcState).length, 4);
-assert.equal(canActOnRecord(dcState, records.decision), false);
+const dcState = assertCentralSiteSelection('dc');
+assert.equal(simulateAction(dcState, 'decision'), dcState);
+assert.equal(simulateAction(dcState, 'calibration'), dcState);
 
-const operationsState = selectSite(defaultState, 'ops');
-assert.equal(operationsState.scopeId, 'operations');
-assert.equal(operationsState.selectedSiteId, 'ops');
-assert.equal(visibleRecords(operationsState)[0].id, 'leak');
-assert.equal(canActOnRecord(operationsState, records.leak), true);
+const explicitOperationsScope = selectScope(defaultState, 'operations');
+assert.equal(explicitOperationsScope.scopeId, 'operations');
+assert.equal(explicitOperationsScope.selectedSiteId, 'ops');
+assert.deepEqual(visibleRecords(explicitOperationsScope).map((record) => record.id), ['leak', 'decision']);
+assert.equal(canActOnRecord(explicitOperationsScope, records.leak), true);
+assert.equal(canActOnRecord(explicitOperationsScope, records.decision), false);
+
+const explicitPumpScope = selectScope(explicitOperationsScope, 'northPump');
+assert.equal(explicitPumpScope.scopeId, 'northPump');
+assert.equal(explicitPumpScope.selectedSiteId, 'pump');
+assert.deepEqual(visibleRecords(explicitPumpScope).map((record) => record.id), ['calibration']);
 
 const criticalState = setFilter(defaultState, 'critical');
 assert.deepEqual(visibleRecords(criticalState).map((record) => record.id), ['hvac']);

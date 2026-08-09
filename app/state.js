@@ -31,7 +31,6 @@ export function selectSite(state, siteId) {
   if (!site) return state;
   return {
     ...state,
-    scopeId: site.scopeId,
     selectedSiteId: site.id,
     filterId: 'all',
     searchTerm: '',
