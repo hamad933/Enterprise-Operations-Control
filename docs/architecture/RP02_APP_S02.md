@@ -15,16 +15,18 @@ The queue owns search, filters, operational-scope visibility, selected action-si
 ## Authority invariants
 
 - Cross-site visibility does not grant cross-site action authority.
-- `AUTHORIZED` requires both task authority and exact action-site match.
-- `AUTHORITY_DENIED` and `DECISION_PENDING` remain explicit and non-bypassable in the UI.
+- Runtime authority evaluation distinguishes explicit task-level denial, action-site mismatch, decision restrictions, and authorized matching-site state.
+- Explicit `AUTHORITY_DENIED` remains denied even when the selected action site matches the task site.
+- An otherwise `AUTHORIZED` task loses action authority when the selected action site does not match and regains only its own task authority when the matching site is restored.
 - No Admin bypass, self-approval, or final-closure authority is represented.
 
 ## Evidence and closure invariants
 
 - `EVIDENCE_MISSING` blocks closure request and cannot appear successfully closed.
 - A closure request transitions only to independent-verification pending state; it is not final closure.
-- `VERIFICATION_REJECTED` remains unresolved until rework starts.
-- Rework preserves the previous rejection and lineage history.
+- `VERIFICATION_REJECTED` remains unresolved and requires rework.
+- Starting rework preserves rejection and closure-request lineage, changes the task to `REWORK_ACTIVE`, and invalidates pre-rejection evidence as proof of completed rework.
+- S02 does not represent rework completion. While `REWORK_ACTIVE`, closure request remains disabled; actual rework completion and refreshed post-rework evidence occur outside this bounded S02 interaction before any later closure request and independent verification.
 
 ## Synthetic-data boundary
 
