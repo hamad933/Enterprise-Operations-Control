@@ -1,7 +1,7 @@
 import { actionSites, queueFilters, S02_META, tasks } from './work-queue-data.js';
 import {
-  canActOnTask,
   closureEligibility,
+  evaluateTaskAuthority,
   queueCounts,
   reworkEligibility,
   runtimeTask,
@@ -17,45 +17,68 @@ const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({
 const ltr = (value) => `<bdi class="ltr" dir="ltr">${escapeHtml(value)}</bdi>`;
 
 function stateTone(task) {
-  if (task.evidenceState === 'EVIDENCE_MISSING' || task.verificationState === 'VERIFICATION_REJECTED') return 'danger';
+  if (task.evidenceState === 'EVIDENCE_MISSING' || task.evidenceState === 'EVIDENCE_REFRESH_REQUIRED' || task.verificationState === 'VERIFICATION_REJECTED') return 'danger';
   if (task.authorityCode === 'AUTHORITY_DENIED') return 'muted';
   if (task.closureState === 'REQUESTED' || task.authorityCode === 'DECISION_PENDING') return 'warning';
   if (task.priorityRank <= 2) return 'critical';
   return 'neutral';
 }
 
-function authorityLabel(state, task) {
-  if (task.authorityCode === 'DECISION_PENDING') return 'DECISION_PENDING';
-  if (task.authorityCode === 'AUTHORITY_DENIED') return 'AUTHORITY_DENIED';
-  return canActOnTask(state, task) ? 'AUTHORIZED' : 'AUTHORITY_DENIED';
+function deniedActionLabel(authority) {
+  if (authority.condition === 'EXPLICIT_TASK_DENIAL') return 'عرض فقط — رفض صلاحية صريح';
+  if (authority.condition === 'ACTION_SITE_MISMATCH') return 'عرض فقط — موقع الإجراء لا يطابق المهمة';
+  if (authority.condition === 'DECISION_PENDING') return 'بانتظار القرار';
+  return 'عرض فقط — لا توجد صلاحية إجراء';
 }
 
 function primaryActionFor(state, task) {
   if (task.verificationState === 'VERIFICATION_REJECTED') {
     const eligibility = reworkEligibility(state, task);
     return {
-      kind: 'rework',
-      label: eligibility.allowed ? 'بدء إعادة العمل' : 'عرض فقط — لا توجد صلاحية إعادة العمل',
+      kind: eligibility.allowed ? 'rework' : 'none',
+      label: eligibility.allowed ? 'بدء إعادة العمل' : deniedActionLabel(eligibility),
       disabled: !eligibility.allowed,
-      code: eligibility.code
+      code: eligibility.code,
+      reason: eligibility.reason ?? 'إعادة العمل غير متاحة ضمن حالة الصلاحية الحالية.'
+    };
+  }
+
+  if (task.verificationState === 'REWORK_ACTIVE') {
+    const eligibility = closureEligibility(state, task);
+    return {
+      kind: 'none',
+      label: 'إعادة العمل نشطة — يلزم إكمالها وتجديد الدليل',
+      disabled: true,
+      code: eligibility.code,
+      reason: eligibility.reason
     };
   }
 
   const eligibility = closureEligibility(state, task);
   if (task.evidenceState === 'EVIDENCE_MISSING') {
-    return { kind: 'none', label: 'استكمال الدليل مطلوب قبل الإغلاق', disabled: true, code: 'EVIDENCE_MISSING' };
+    return { kind: 'none', label: 'استكمال الدليل مطلوب قبل الإغلاق', disabled: true, code: 'EVIDENCE_MISSING', reason: eligibility.reason };
   }
   if (task.authorityCode === 'DECISION_PENDING') {
-    return { kind: 'none', label: 'بانتظار القرار', disabled: true, code: 'DECISION_PENDING' };
+    return { kind: 'none', label: 'بانتظار القرار', disabled: true, code: 'DECISION_PENDING', reason: eligibility.reason };
   }
   if (task.closureState === 'REQUESTED') {
-    return { kind: 'none', label: 'طلب الإغلاق قيد التحقق', disabled: true, code: 'DECISION_PENDING' };
+    return { kind: 'none', label: 'طلب الإغلاق قيد التحقق', disabled: true, code: 'DECISION_PENDING', reason: eligibility.reason };
+  }
+  if (!eligibility.allowed) {
+    return {
+      kind: 'none',
+      label: deniedActionLabel(eligibility),
+      disabled: true,
+      code: eligibility.code,
+      reason: eligibility.reason
+    };
   }
   return {
     kind: 'closure',
-    label: eligibility.allowed ? 'طلب الإغلاق' : 'عرض فقط — خارج صلاحية موقع الإجراء',
-    disabled: !eligibility.allowed,
-    code: eligibility.code
+    label: 'طلب الإغلاق',
+    disabled: false,
+    code: eligibility.code,
+    reason: eligibility.reason
   };
 }
 
@@ -103,7 +126,7 @@ export function renderQueue(state) {
   const list = visibleTasks(state);
   byId('queueList').innerHTML = list.map((task) => {
     const selected = task.id === state.selectedTaskId;
-    const authority = authorityLabel(state, task);
+    const authority = evaluateTaskAuthority(state, task);
     return `
       <button class="queue-row ${selected ? 'selected' : ''}" data-task="${task.id}" aria-pressed="${selected}" style="--task-tone:${stateTone(task)}">
         <span class="queue-priority"><strong>${task.priorityRank}</strong><small>${escapeHtml(task.priority)}</small></span>
@@ -121,7 +144,7 @@ export function renderQueue(state) {
           <small>${escapeHtml(task.verificationLabel)}</small>
         </span>
         <span class="queue-authority">
-          <bdi class="technical-state ${authority === 'AUTHORIZED' ? 'ok' : 'denied'}" dir="ltr">${authority}</bdi>
+          <bdi class="technical-state ${authority.allowed ? 'ok' : 'denied'}" dir="ltr">${escapeHtml(authority.code)}</bdi>
           <small>${escapeHtml(task.closureLabel)}</small>
         </span>
         <span class="queue-open" aria-hidden="true">${icon('arrow', 17)}</span>
@@ -152,7 +175,7 @@ export function renderFocus(state) {
   if (!task) return;
 
   const action = primaryActionFor(state, task);
-  const authority = authorityLabel(state, task);
+  const authority = evaluateTaskAuthority(state, task);
   const selectedSite = actionSites.find((site) => site.id === state.actionSiteId);
 
   byId('focusTaskId').innerHTML = ltr(task.id);
@@ -160,20 +183,22 @@ export function renderFocus(state) {
   byId('focusContext').innerHTML = `${escapeHtml(task.site)} · ${escapeHtml(task.scope)} · ${ltr(task.asset)}`;
   byId('focusStatus').textContent = task.status;
 
-  byId('focusAuthority').className = `authority-aperture ${authority === 'AUTHORIZED' ? 'authority-allowed' : 'authority-denied'}`;
+  byId('focusAuthority').className = `authority-aperture ${authority.allowed ? 'authority-allowed' : 'authority-denied'}`;
   byId('focusAuthority').innerHTML = `
     <span class="aperture-label">Authority Aperture</span>
-    <strong><bdi dir="ltr">${authority}</bdi></strong>
-    <p>${escapeHtml(task.authorityReason)}</p>
+    <strong><bdi dir="ltr">${escapeHtml(authority.code)}</bdi></strong>
+    <p>${escapeHtml(authority.reason)}</p>
     <div class="authority-facts">
       <span>موقع المهمة: <b>${escapeHtml(task.site)}</b></span>
       <span>موقع الإجراء: <b>${escapeHtml(selectedSite?.name ?? '')}</b></span>
     </div>
   `;
 
+  const evidenceTone = task.evidenceState === 'COMPLETE' ? 'ok' : 'denied';
   byId('focusEvidence').innerHTML = `
-    <div class="focus-section-head"><h3>الأدلة</h3><bdi dir="ltr" class="technical-state ${task.evidenceState === 'EVIDENCE_MISSING' ? 'denied' : 'ok'}">${escapeHtml(task.evidenceState)}</bdi></div>
+    <div class="focus-section-head"><h3>الأدلة</h3><bdi dir="ltr" class="technical-state ${evidenceTone}">${escapeHtml(task.evidenceState)}</bdi></div>
     <ul class="evidence-list">${task.evidence.map((item, index) => `<li class="${item.includes('مفقودة') ? 'missing' : ''}"><span>${index + 1}</span><strong>${escapeHtml(item)}</strong></li>`).join('')}</ul>
+    <p class="invariant-note">${escapeHtml(task.evidenceLabel)}</p>
   `;
 
   byId('focusClosure').innerHTML = `
@@ -199,7 +224,7 @@ export function renderFocus(state) {
 
   byId('focusActionCode').innerHTML = `<bdi dir="ltr">${escapeHtml(action.code)}</bdi>`;
   byId('focusActionNote').textContent = action.disabled
-    ? 'لم تُنفّذ أي معاملة. التحكم يعكس شرط الصلاحية أو الدليل أو التحقق فقط.'
+    ? action.reason
     : 'محاكاة داخل الذاكرة فقط. لا يوجد backend أو حفظ دائم أو إغلاق نهائي تلقائي.';
 }
 
