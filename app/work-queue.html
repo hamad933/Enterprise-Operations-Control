@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RP02 — قائمة الأعمال والمهمة المركزة</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./work-queue.css">
+</head>
+<body class="s02-page">
+  <div id="appShell">
+    <header class="app-header">
+      <a class="brand s02-brand-link" href="./index.html" aria-label="العودة إلى مركز الانتباه التنفيذي">
+        <div class="brand-mark" id="brandSymbol" aria-hidden="true"></div>
+        <div class="brand-copy">
+          <div class="brand-title"><bdi dir="ltr">RP02</bdi> <span>Enterprise Operations</span></div>
+          <div class="brand-sub">Work Queue / Focus Task</div>
+        </div>
+      </a>
+
+      <div class="s02-context-lock" aria-label="النطاق التشغيلي الحالي">
+        <span>النطاق التشغيلي</span>
+        <strong>المنطقة الوسطى</strong>
+        <small>رؤية متعددة المواقع · صلاحية الإجراء مستقلة</small>
+      </div>
+
+      <label class="search">
+        <span class="sr-only">البحث في قائمة الأعمال</span>
+        <input id="queueSearch" type="search" placeholder="ابحث عن مهمة، موقع، أصل، أو مالك…" autocomplete="off">
+        <span class="search-icon" data-icon="search" data-icon-size="18" aria-hidden="true"></span>
+      </label>
+
+      <div class="user-zone">
+        <div class="user-card" aria-label="المستخدم التجريبي الحالي: أحمد الحسيني، مدير التشغيل">
+          <div class="avatar" aria-hidden="true">أح</div>
+          <div class="user-copy">
+            <div class="user-name">أحمد الحسيني</div>
+            <div class="user-role">مدير التشغيل · حساب تجريبي</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="top-nav" aria-label="التنقل الرئيسي">
+      <a class="nav-btn" href="./index.html"><span data-icon="attention"></span><span>الانتباه</span></a>
+      <a class="nav-btn active" href="./work-queue.html" aria-current="page"><span data-icon="work"></span><span>الأعمال</span></a>
+      <button class="nav-btn" data-placeholder="مساحة المواقع خارج نطاق S02"><span data-icon="sites"></span><span>المواقع</span></button>
+      <button class="nav-btn" data-placeholder="مساحة التحقق خارج نطاق S02"><span data-icon="verification"></span><span>التحقق</span></button>
+      <button class="nav-btn" data-placeholder="مساحة القرارات خارج نطاق S02"><span data-icon="decisions"></span><span>القرارات</span></button>
+      <button class="nav-btn" data-placeholder="مساحة التقارير خارج نطاق S02"><span data-icon="reports"></span><span>التقارير</span></button>
+    </nav>
+
+    <aside class="left-rail" aria-label="اختصارات المنتج">
+      <a class="rail-btn" href="./index.html" aria-label="الانتباه"><span data-icon="attention"></span></a>
+      <a class="rail-btn active" href="./work-queue.html" aria-label="الأعمال" aria-current="page"><span data-icon="work"></span></a>
+      <button class="rail-btn" data-placeholder="المواقع خارج نطاق S02" aria-label="المواقع"><span data-icon="sites"></span></button>
+      <button class="rail-btn" data-placeholder="التحقق خارج نطاق S02" aria-label="التحقق"><span data-icon="verification"></span></button>
+      <button class="rail-btn" data-placeholder="القرارات خارج نطاق S02" aria-label="القرارات"><span data-icon="decisions"></span></button>
+      <button class="rail-btn" data-placeholder="التقارير خارج نطاق S02" aria-label="التقارير"><span data-icon="reports"></span></button>
+      <div class="rail-spacer"></div>
+      <button class="rail-btn" data-placeholder="الإعدادات خارج نطاق S02" aria-label="الإعدادات"><span data-icon="settings"></span></button>
+    </aside>
+
+    <main class="workspace s02-workspace">
+      <div class="synthetic-banner">
+        <span class="synthetic-mark" aria-hidden="true"></span>
+        <span id="syntheticNotice">جميع السجلات اصطناعية لأغراض المراجعة فقط.</span>
+      </div>
+
+      <section class="s02-command" aria-labelledby="queueHeading">
+        <div class="s02-title">
+          <span class="eyebrow">Work Control / S02</span>
+          <h1 id="queueHeading">قائمة الأعمال والمهمة المركزة</h1>
+          <p>تحكم تشغيلي دقيق يفصل ما يمكنك رؤيته عن الموقع الذي تملك فيه صلاحية إجراء فعلية.</p>
+        </div>
+        <label class="action-site-control">
+          <span>موقع الإجراء المحدد</span>
+          <select id="actionSiteSelect" aria-describedby="actionSiteHelp"></select>
+          <small id="actionSiteHelp">تغيير الموقع لا يضيّق الرؤية التشغيلية؛ بل يغيّر صلاحية الإجراء للمهمة المحددة فقط.</small>
+        </label>
+      </section>
+
+      <div class="scope-boundary" id="scopeBoundary" role="note"></div>
+      <section class="queue-summary" id="queueSummary" aria-label="ملخص قائمة الأعمال"></section>
+
+      <div class="s02-layout">
+        <section class="queue-column" aria-label="قائمة الأعمال">
+          <div class="queue-toolbar">
+            <div class="queue-filter-wrap">
+              <div class="filter-bar" id="queueFilters" role="group" aria-label="تصفية قائمة الأعمال"></div>
+            </div>
+            <div class="queue-order" aria-label="ترتيب القائمة">الأولوية ← ثم أحدث حالة</div>
+          </div>
+
+          <div class="queue-ledger">
+            <div class="queue-head" aria-hidden="true">
+              <span>الأولوية</span><span>المهمة / الموقع / الأصل</span><span>الحالة / الإسناد</span><span>الدليل / التحقق</span><span>الصلاحية / الإغلاق</span><span></span>
+            </div>
+            <div id="queueList" class="queue-list" aria-live="polite"></div>
+            <div id="queueEmpty" class="queue-empty" hidden><strong>لا توجد مهام مطابقة</strong><span>غيّر البحث أو المرشح لعرض أعمال أخرى ضمن النطاق التشغيلي الحالي.</span></div>
+            <div class="queue-footer"><span id="visibleQueueCount"></span><span>البيانات اصطناعية، ولا توجد مزامنة أو تخزين خلفي.</span></div>
+          </div>
+        </section>
+
+        <aside class="focus-task" id="focusTask" aria-labelledby="focusTitle" tabindex="-1">
+          <header class="focus-task-head">
+            <div><span class="focus-kicker">Focus Task</span><div class="focus-id" id="focusTaskId"><bdi dir="ltr">TSK-2041</bdi></div></div>
+            <span class="focus-status" id="focusStatus">—</span>
+          </header>
+          <div class="focus-task-title"><h2 id="focusTitle">—</h2><p id="focusContext">—</p></div>
+          <section id="focusAuthority" class="authority-aperture" aria-label="حد صلاحية المهمة"></section>
+          <section id="focusEvidence" class="focus-block" aria-label="أدلة المهمة"></section>
+          <section id="focusClosure" class="focus-block" aria-label="حالة التحقق والإغلاق"></section>
+          <section id="focusHistory" class="focus-block" aria-label="مسار المهمة وسجلها"></section>
+          <footer class="focus-action">
+            <div class="focus-action-state"><span>حالة التحكم</span><strong id="focusActionCode"><bdi dir="ltr">AUTHORIZED</bdi></strong></div>
+            <button class="primary-action" id="focusPrimaryAction" type="button">طلب الإغلاق</button>
+            <p id="focusActionNote"></p>
+          </footer>
+        </aside>
+      </div>
+    </main>
+
+    <nav class="mobile-bar" aria-label="التنقل المحمول">
+      <a class="mobile-tab" href="./index.html"><span data-icon="attention"></span><span>الانتباه</span></a>
+      <a class="mobile-tab active" href="./work-queue.html" aria-current="page"><span data-icon="work"></span><span>الأعمال</span></a>
+      <button class="mobile-tab" data-placeholder="المواقع خارج نطاق S02"><span data-icon="sites"></span><span>المواقع</span></button>
+      <button class="mobile-tab" data-placeholder="المزيد خارج نطاق S02"><span data-icon="more"></span><span>المزيد</span></button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./work-queue.js"></script>
+</body>
+</html>
