@@ -202,6 +202,10 @@ document.addEventListener('click', (event) => {
 
   const placeholder = event.target.closest('[data-placeholder]');
   if (placeholder) {
+    if (placeholder.dataset.placeholder.includes('الأعمال')) {
+      window.location.href = './work-queue.html';
+      return;
+    }
     showToast(`${placeholder.dataset.placeholder}. لم يتم فتح مساحة إضافية.`);
   }
 });
