@@ -39,31 +39,103 @@ export function runtimeTask(state, taskOrId) {
   return runtime ? { ...task, ...runtime } : task;
 }
 
-export function canActOnTask(state, taskOrId) {
+export function evaluateTaskAuthority(state, taskOrId) {
   const task = runtimeTask(state, taskOrId);
-  if (!task) return false;
-  return task.authorityCode === 'AUTHORIZED' && task.siteId === state.actionSiteId;
+  if (!task) {
+    return {
+      allowed: false,
+      code: 'OUT_OF_SCOPE',
+      condition: 'OUT_OF_SCOPE',
+      reason: 'المهمة غير موجودة ضمن هذا السطح.',
+      actionReason: 'لا يمكن تنفيذ إجراء على مهمة غير موجودة ضمن نطاق S02.'
+    };
+  }
+
+  const selectedSite = actionSites.find((site) => site.id === state.actionSiteId);
+
+  if (task.authorityCode === 'DECISION_PENDING') {
+    return {
+      allowed: false,
+      code: 'DECISION_PENDING',
+      condition: 'DECISION_PENDING',
+      reason: 'صلاحية التنفيذ متوقفة لأن قرار نافذة العمل ما يزال معلّقًا؛ لا يمنح تطابق الموقع سلطة لتجاوز القرار.',
+      actionReason: 'الإجراء غير متاح حتى يصدر القرار المطلوب.'
+    };
+  }
+
+  if (task.authorityCode === 'AUTHORITY_DENIED') {
+    return {
+      allowed: false,
+      code: 'AUTHORITY_DENIED',
+      condition: 'EXPLICIT_TASK_DENIAL',
+      reason: 'المهمة تحمل رفض صلاحية صريحًا على مستوى المهمة. هذا الرفض يبقى نافذًا حتى عندما يطابق موقع الإجراء موقع المهمة.',
+      actionReason: 'الإجراء مرفوض بصلاحية صريحة على مستوى المهمة، وليس بسبب اختلاف الموقع.'
+    };
+  }
+
+  if (task.authorityCode !== 'AUTHORIZED') {
+    return {
+      allowed: false,
+      code: 'AUTHORITY_DENIED',
+      condition: 'TASK_AUTHORITY_NOT_GRANTED',
+      reason: 'لم تُمنح لهذه المهمة صلاحية إجراء قابلة للتنفيذ داخل S02.',
+      actionReason: 'الإجراء غير متاح لأن المهمة لا تحمل صلاحية تنفيذ.'
+    };
+  }
+
+  if (task.siteId !== state.actionSiteId) {
+    return {
+      allowed: false,
+      code: 'AUTHORITY_DENIED',
+      condition: 'ACTION_SITE_MISMATCH',
+      reason: `المهمة مصرح بها في أصلها، لكن موقع الإجراء المحدد «${selectedSite?.name ?? 'غير محدد'}» لا يطابق موقع المهمة «${task.site}». الرؤية عبر المواقع لا تمنح صلاحية إجراء.`,
+      actionReason: 'الإجراء غير متاح لأن موقع الإجراء المحدد لا يطابق موقع المهمة.'
+    };
+  }
+
+  return {
+    allowed: true,
+    code: 'AUTHORIZED',
+    condition: 'AUTHORIZED_MATCHING_SITE',
+    reason: `المهمة تحمل صلاحية إجراء، وموقع الإجراء المحدد «${selectedSite?.name ?? task.site}» يطابق موقع المهمة. تبقى قيود الدليل والتحقق والإغلاق مستقلة.`,
+    actionReason: 'صلاحية الموقع متحققة؛ تُطبّق بعد ذلك قيود الدليل والتحقق والإغلاق.'
+  };
+}
+
+export function canActOnTask(state, taskOrId) {
+  return evaluateTaskAuthority(state, taskOrId).allowed;
 }
 
 export function closureEligibility(state, taskOrId) {
   const task = runtimeTask(state, taskOrId);
-  if (!task) return { allowed: false, code: 'OUT_OF_SCOPE', reason: 'المهمة غير موجودة ضمن هذا السطح.' };
-  if (task.authorityCode === 'DECISION_PENDING') {
-    return { allowed: false, code: 'DECISION_PENDING', reason: 'قرار التنفيذ لم يصدر بعد.' };
-  }
-  if (!canActOnTask(state, task)) {
-    return { allowed: false, code: 'AUTHORITY_DENIED', reason: 'الرؤية ضمن النطاق لا تمنح صلاحية الإجراء على موقع مختلف.' };
-  }
+  if (!task) return { allowed: false, code: 'OUT_OF_SCOPE', condition: 'OUT_OF_SCOPE', reason: 'المهمة غير موجودة ضمن هذا السطح.' };
+
+  const authority = evaluateTaskAuthority(state, task);
+  if (!authority.allowed) return authority;
+
   if (task.evidenceState === 'EVIDENCE_MISSING') {
-    return { allowed: false, code: 'EVIDENCE_MISSING', reason: 'لا يمكن طلب الإغلاق قبل استكمال الأدلة المطلوبة.' };
+    return { allowed: false, code: 'EVIDENCE_MISSING', condition: 'EVIDENCE_MISSING', reason: 'لا يمكن طلب الإغلاق قبل استكمال الأدلة المطلوبة.' };
   }
   if (task.verificationState === 'VERIFICATION_REJECTED') {
-    return { allowed: false, code: 'VERIFICATION_REJECTED', reason: 'المهمة تحتاج إلى إعادة عمل قبل أي طلب إغلاق جديد.' };
+    return { allowed: false, code: 'VERIFICATION_REJECTED', condition: 'VERIFICATION_REJECTED', reason: 'نتيجة التحقق مرفوضة؛ يجب بدء إعادة العمل قبل أي طلب إغلاق جديد.' };
+  }
+  if (task.verificationState === 'REWORK_ACTIVE') {
+    return {
+      allowed: false,
+      code: 'REWORK_ACTIVE',
+      condition: 'REWORK_ACTIVE_REQUIRES_REFRESHED_EVIDENCE',
+      reason: 'إعادة العمل نشطة. الدليل السابق محفوظ كسجل تاريخي ولا يثبت اكتمال إعادة العمل؛ اكتمال إعادة العمل وتجديد دليل ما بعد التنفيذ يحدثان خارج تفاعل S02 المحدود قبل أي طلب إغلاق جديد.'
+    };
   }
   if (task.closureState === 'REQUESTED') {
-    return { allowed: false, code: 'DECISION_PENDING', reason: 'طلب الإغلاق أُرسل بالفعل وينتظر تحققًا مستقلًا.' };
+    return { allowed: false, code: 'DECISION_PENDING', condition: 'CLOSURE_ALREADY_REQUESTED', reason: 'طلب الإغلاق أُرسل بالفعل وينتظر تحققًا مستقلًا.' };
   }
-  return { allowed: true, code: 'AUTHORIZED', reason: 'شروط طلب الإغلاق متحققة لهذا الموقع، لكن الإغلاق النهائي يبقى خارج سلطة المنفذ.' };
+  return {
+    allowed: true,
+    code: 'AUTHORIZED',
+    condition: 'CLOSURE_REQUEST_ALLOWED',
+    reason: 'شروط طلب الإغلاق متحققة لهذا الموقع، لكن الإغلاق النهائي يبقى خارج سلطة المنفذ.'
+  };
 }
 
 function appendHistory(task, entry) {
@@ -100,10 +172,14 @@ export function requestClosure(state, taskId) {
 
 export function reworkEligibility(state, taskOrId) {
   const task = runtimeTask(state, taskOrId);
-  if (!task) return { allowed: false, code: 'OUT_OF_SCOPE' };
-  if (!canActOnTask(state, task)) return { allowed: false, code: 'AUTHORITY_DENIED' };
-  if (task.verificationState !== 'VERIFICATION_REJECTED') return { allowed: false, code: 'OUT_OF_SCOPE' };
-  return { allowed: true, code: 'AUTHORIZED' };
+  if (!task) return { allowed: false, code: 'OUT_OF_SCOPE', condition: 'OUT_OF_SCOPE' };
+
+  const authority = evaluateTaskAuthority(state, task);
+  if (!authority.allowed) return authority;
+  if (task.verificationState !== 'VERIFICATION_REJECTED') {
+    return { allowed: false, code: 'OUT_OF_SCOPE', condition: 'REWORK_NOT_REQUIRED' };
+  }
+  return { allowed: true, code: 'AUTHORIZED', condition: 'REWORK_ALLOWED' };
 }
 
 export function startRework(state, taskId) {
@@ -118,11 +194,14 @@ export function startRework(state, taskId) {
       [task.id]: {
         ...state.runtime[task.id],
         status: 'إعادة العمل نشطة',
+        evidenceState: 'EVIDENCE_REFRESH_REQUIRED',
+        evidenceLabel: 'الدليل السابق محفوظ تاريخيًا — يلزم دليل ما بعد إعادة العمل',
         verificationState: 'REWORK_ACTIVE',
         verificationLabel: 'إعادة العمل نشطة بعد رفض التحقق',
         closureState: 'OPEN',
-        closureLabel: 'أعيد فتحها ضمن lineage محفوظ',
-        nextAction: 'تنفيذ إعادة العمل',
+        closureLabel: 'مفتوحة — طلب الإغلاق معطل أثناء إعادة العمل',
+        closureRule: 'إعادة العمل النشطة لا يمكنها طلب الإغلاق. اكتمال إعادة العمل وتجديد الدليل يحدثان خارج تفاعل S02 المحدود، ثم يلزم طلب إغلاق جديد وتحقق مستقل.',
+        nextAction: 'تنفيذ إعادة العمل وتجديد الدليل',
         history: appendHistory(task, {
           code: 'REWORK_STARTED',
           label: 'بدء إعادة العمل RW-02 — محاكاة واجهة فقط',
