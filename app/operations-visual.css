@@ -1,0 +1,25 @@
+/* Surface-level refinements for S03–S08 after direct screenshot comparison. */
+
+/* In S04/S05, the first incomplete operational stage is the current stage.
+   Completed stages remain blue; later stages remain neutral/blocked. */
+html[data-surface="performance"] .process-step:nth-child(3):not(.active),
+html[data-surface="performance"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active),
+html[data-surface="decisions"] .process-step:nth-child(3):not(.active),
+html[data-surface="decisions"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active) {
+  background:var(--vc-warn-soft);
+}
+
+html[data-surface="performance"] .process-step:nth-child(3):not(.active)::before,
+html[data-surface="performance"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active)::before,
+html[data-surface="decisions"] .process-step:nth-child(3):not(.active)::before,
+html[data-surface="decisions"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active)::before {
+  background:#c08a26;
+  box-shadow:0 0 0 1px #c08a26;
+}
+
+html[data-surface="performance"] .process-step:nth-child(3):not(.active) strong,
+html[data-surface="performance"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active) strong,
+html[data-surface="decisions"] .process-step:nth-child(3):not(.active) strong,
+html[data-surface="decisions"] .process-step:nth-child(3).active + .process-step:nth-child(4):not(.active) strong {
+  color:#705114;
+}

@@ -1,0 +1,106 @@
+name: RP02 Visual Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'tests/**'
+      - 'docs/architecture/RP02_VISUAL_CONVERGENCE.md'
+      - '.github/workflows/rp02-visual-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rp02-visual-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  visual-exact-head:
+    name: S01-S08 exact-head visual and regression validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact PR head and prototype blob
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_PROTOTYPE_BLOB: 649bc84678842ffcf3c22cc33a911ccce56c6b21
+        run: |
+          set -euo pipefail
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          ACTUAL_PROTOTYPE_BLOB="$(git hash-object prototypes/rp02-s01/index.html)"
+          echo "Expected PR head:       ${EXPECTED_HEAD}"
+          echo "Checked out head:        ${ACTUAL_HEAD}"
+          echo "Expected prototype blob: ${EXPECTED_PROTOTYPE_BLOB}"
+          echo "Actual prototype blob:   ${ACTUAL_PROTOTYPE_BLOB}"
+          test "${ACTUAL_HEAD}" = "${EXPECTED_HEAD}"
+          test "${ACTUAL_PROTOTYPE_BLOB}" = "${EXPECTED_PROTOTYPE_BLOB}"
+
+      - name: Run permanent Node and state regressions
+        run: |
+          set -euo pipefail
+          node --version
+          node --check app/app.js
+          node --check app/work-queue.js
+          node --check app/completion-data.js
+          node --check app/completion-state.js
+          node --check app/completion-render.js
+          node --check app/completion.js
+          node --check tests/s02-browser.cjs
+          node --check tests/completion-browser.cjs
+          node --check tests/visual-capture.cjs
+          node tests/foundation.mjs
+          node tests/s02.mjs
+          node tests/completion.mjs
+
+      - name: Install pinned ephemeral Playwright tooling
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+          npx playwright --version
+          npx playwright install --with-deps chromium
+
+      - name: Run exact-head browser regressions and capture screenshots
+        env:
+          S02_BASE_URL: http://127.0.0.1:4173/app
+          RP02_COMPLETION_BASE_URL: http://127.0.0.1:4173/app
+          RP02_VISUAL_BASE_URL: http://127.0.0.1:4173
+          RP02_VISUAL_PHASE: after
+          RP02_VISUAL_OUTPUT: visual-evidence
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/rp02-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "${SERVER_PID}" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4173/app/index.html > /dev/null; then
+              break
+            fi
+            if [ "${attempt}" -eq 20 ]; then
+              cat /tmp/rp02-visual-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node tests/s02-browser.cjs
+          node tests/completion-browser.cjs
+          node tests/visual-capture.cjs
+
+      - name: Upload retained visual evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: rp02-visual-final-${{ github.event.pull_request.head.sha }}
+          path: visual-evidence/
+          if-no-files-found: error
+          retention-days: 30

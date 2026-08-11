@@ -1,0 +1,16 @@
+/* Surface-specific convergence rule: preserve the accepted S02 grid contract
+   while prioritizing the selected Focus Task before the long queue on mobile. */
+@media(max-width:620px) {
+  .s02-page .s02-layout {
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .s02-page .focus-task {
+    grid-row:1;
+    order:initial;
+    margin-bottom:0;
+  }
+  .s02-page .queue-column {
+    grid-row:2;
+  }
+}
