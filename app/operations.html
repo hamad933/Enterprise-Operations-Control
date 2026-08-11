@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RP02 — Enterprise Operations</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./completion.css">
+</head>
+<body class="completion-page">
+  <div id="completionShell">
+    <header class="completion-header">
+      <a class="completion-brand" href="./index.html" aria-label="RP02 Enterprise Operations — العودة إلى مركز الانتباه">
+        <span class="completion-brand-mark" aria-hidden="true">RP</span>
+        <span><strong><bdi dir="ltr">RP02</bdi> Enterprise Operations</strong><small id="surfaceEyebrow">Operational Control</small></span>
+      </a>
+      <div class="completion-scope" aria-label="النطاق التشغيلي الحالي">
+        <span>النطاق التشغيلي</span><strong>المنطقة الوسطى</strong><small>رؤية متعددة المواقع · سلطة الإجراء مستقلة</small>
+      </div>
+      <label class="completion-search">
+        <span class="sr-only">البحث داخل السطح الحالي</span>
+        <input id="completionSearch" type="search" autocomplete="off" placeholder="ابحث في السطح الحالي…">
+      </label>
+      <div class="completion-user" aria-label="المستخدم التجريبي الحالي">
+        <span class="completion-avatar" aria-hidden="true">أح</span>
+        <span><strong>أحمد الحسيني</strong><small>مدير التشغيل · حساب تجريبي</small></span>
+      </div>
+    </header>
+
+    <nav class="completion-nav" id="completionNav" aria-label="التنقل الرئيسي الكامل"></nav>
+
+    <main class="completion-workspace" id="completionWorkspace">
+      <div class="synthetic-banner completion-synthetic"><span class="synthetic-mark" aria-hidden="true"></span><span id="completionSynthetic"></span></div>
+      <section class="completion-hero" aria-labelledby="surfaceTitle">
+        <div>
+          <span class="completion-kicker" id="surfaceCode"></span>
+          <h1 id="surfaceTitle">—</h1>
+          <p id="surfaceDescription">—</p>
+        </div>
+        <div class="completion-hero-meta">
+          <span>Operational scope</span>
+          <strong>المنطقة الوسطى</strong>
+          <small>Visibility ≠ Action Authority</small>
+        </div>
+      </section>
+      <div class="completion-boundary" id="completionBoundary" role="note"></div>
+      <section id="surfaceState" class="completion-state" hidden aria-live="polite"></section>
+      <div id="completionRoot" aria-live="polite"></div>
+    </main>
+
+    <nav class="completion-mobile-nav" id="completionMobileNav" aria-label="التنقل المحمول"></nav>
+  </div>
+  <div class="toast" id="completionToast" role="status" aria-live="polite"></div>
+  <script type="module" src="./completion.js"></script>
+</body>
+</html>
