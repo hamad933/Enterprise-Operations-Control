@@ -1,3 +1,4 @@
+import './portfolio-runtime.js';
 import { S02_META } from './work-queue-data.js';
 import { renderAll, renderShell } from './work-queue-render.js';
 import {

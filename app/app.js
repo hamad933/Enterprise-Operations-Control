@@ -1,3 +1,4 @@
+import './portfolio-runtime.js';
 import { APP_META, records } from './data.js';
 import { icon } from './icons.js';
 import { renderAll, renderFocus, renderRoute, renderStaticIcons } from './render.js';
