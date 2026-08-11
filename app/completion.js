@@ -1,3 +1,4 @@
+import './portfolio-runtime.js';
 import { kpis, surfaces } from './completion-data.js';
 import { renderAll, renderRoot } from './completion-render.js';
 import {
