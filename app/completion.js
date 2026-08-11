@@ -33,15 +33,57 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+function applyRuntimePresentation() {
+  if (mode === 'readonly') return;
+
+  if (state.surfaceId === 'performance') {
+    const kpi = kpis.find((item) => item.id === state.selectedKpiId);
+    if (kpi?.deviation && state.runtime.validated.includes(kpi.deviation)) {
+      const action = document.querySelector('[data-action="validate-kpi"]');
+      if (action) {
+        action.disabled = true;
+        action.textContent = 'تم تثبيت التحقق من الانحراف';
+      }
+    }
+  }
+
+  if (state.surfaceId === 'decisions' && state.runtime.decided.includes(state.selectedDeviationId)) {
+    const action = document.querySelector('[data-action="decide"]');
+    if (action) {
+      action.disabled = true;
+      action.textContent = 'تم تسجيل القرار الاصطناعي';
+    }
+    const detail = document.querySelector('.surface-side .panel-body');
+    if (detail && !document.getElementById('decisionRuntimeState')) {
+      const marker = document.createElement('div');
+      marker.id = 'decisionRuntimeState';
+      marker.className = 'authority-box allowed';
+      marker.style.marginTop = '9px';
+      marker.innerHTML = '<strong><bdi class="ltr" dir="ltr">DECIDED</bdi></strong><p>تم تسجيل القرار الاصطناعي. يبقى الإجراء التصحيحي ومراقبة النتيجة مرحلتين مستقلتين.</p>';
+      detail.append(marker);
+    }
+  }
+
+  if (state.surfaceId === 'reviews' && state.runtime.approved.includes(state.selectedReviewId)) {
+    const action = document.querySelector('[data-action="approve-review"]');
+    if (action) {
+      action.disabled = true;
+      action.textContent = 'تم الاعتماد الاصطناعي';
+    }
+  }
+}
+
 function applyState(nextState, message = '') {
   state = nextState;
   renderRoot(state, mode);
+  applyRuntimePresentation();
   if (message) showToast(message);
 }
 
 byId('completionSearch').addEventListener('input', (event) => {
   state = setSearch(state, event.target.value);
   renderRoot(state, mode);
+  applyRuntimePresentation();
 });
 
 document.addEventListener('click', (event) => {
@@ -129,3 +171,4 @@ document.addEventListener('click', (event) => {
 });
 
 renderAll(state, mode);
+applyRuntimePresentation();
