@@ -106,7 +106,7 @@ async function snapElement(page,selector,name){
     await page.close();
 
     page=await open(browser,surfaces[6],desktop);
-    await snapElement(page,'#auditTimeline','focus-s07-chronology.png');
+    await snapElement(page,'#auditTimeline','focus-s07-desktop-audit.png');
     await page.close();
 
     page=await open(browser,surfaces[7],desktop);
@@ -114,6 +114,12 @@ async function snapElement(page,selector,name){
     await page.locator('[data-action="check-access"]').click();
     await page.waitForTimeout(80);
     await snapElement(page,'.access-columns','focus-s08-access-vs-authority.png');
+    await page.close();
+
+    page=await open(browser,surfaces[1],mobile);
+    await page.locator('[data-task="TSK-2041"]').click();
+    await page.waitForTimeout(80);
+    await snapElement(page,'#focusEvidence','focus-mobile-s02-evidence.png');
     await page.close();
 
     page=await open(browser,surfaces[4],mobile);
@@ -130,6 +136,10 @@ async function snapElement(page,selector,name){
     await snapElement(page,'.surface-side','focus-mobile-s06-rejected-rework.png');
     await page.close();
 
+    page=await open(browser,surfaces[6],mobile);
+    await snapElement(page,'#auditTimeline','focus-mobile-s07-audit.png');
+    await page.close();
+
     page=await open(browser,surfaces[7],mobile);
     await page.locator('[data-profile="USR-099"]').click();
     await page.locator('[data-action="check-access"]').click();
@@ -140,8 +150,9 @@ async function snapElement(page,selector,name){
     fs.writeFileSync(path.join(outputDir,'README.txt'),[
       'مدار المرافق — portfolio evidence',
       '24 exact-viewport page screenshots: S01–S08 at desktop 1440x960, tablet 900x1024, and mobile 390x844.',
-      'Focused evidence includes global brand, S01 route/authority, S02 focus task, S03 asset authority, S04 definition/progression, S05 Arabic process and authority states, S06 Arabic role separation and rejection/approval, S07 chronology, and S08 access-vs-authority.',
-      'Mobile focused evidence is included for S05 process/authority, S06 roles/rejection, and S08 access/operational-role separation.',
+      'Focused evidence includes global brand, S01 route/authority, S02 focus task, S03 asset authority, S04 definition/progression, S05 Arabic process and authority states, S06 Arabic role separation and rejection/approval, S07 desktop audit, and S08 access-vs-authority.',
+      'Final bounded client-readiness evidence explicitly includes S02 mobile evidence, S07 desktop audit, and S07 mobile audit.',
+      'Mobile focused evidence is also included for S05 process/authority, S06 roles/rejection, and S08 access/operational-role separation.',
       'All captures assert zero console/page errors and no horizontal overflow before writing.'
     ].join('\n'));
     console.log(`Portfolio evidence captured: ${fs.readdirSync(outputDir).length} files`);
