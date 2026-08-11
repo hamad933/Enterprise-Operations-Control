@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 
 const baseUrl = process.env.RP02_VISUAL_BASE_URL || 'http://127.0.0.1:4173';
-const phase = process.env.RP02_VISUAL_PHASE || 'before';
+const phase = process.env.RP02_VISUAL_PHASE || 'after';
 const outputDir = process.env.RP02_VISUAL_OUTPUT || path.join(process.cwd(), 'visual-evidence');
 
 const viewports = [
@@ -81,6 +81,14 @@ async function capturePage(browser, viewport, target, fileName, { fullPage = tru
   return page;
 }
 
+async function focused(page, locator, fileName) {
+  const node = page.locator(locator);
+  if (await node.count()) {
+    await node.first().scrollIntoViewIfNeeded();
+    await node.first().screenshot({ path: path.join(outputDir, fileName) });
+  }
+}
+
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -101,24 +109,40 @@ async function capturePage(browser, viewport, target, fileName, { fullPage = tru
           `current-${surface.id}-${viewport.name}-${safeName(phase)}.png`
         );
 
+        if (viewport.name === 'mobile' && ['s02', 's03', 's05', 's06'].includes(surface.id)) {
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.screenshot({ path: path.join(outputDir, `current-${surface.id}-mobile-viewport-${safeName(phase)}.png`), fullPage: false });
+        }
+
         if (surface.id === 's01') {
-          const route = page.locator('.route-panel');
-          if (await route.count()) {
-            await route.screenshot({ path: path.join(outputDir, `current-s01-route-ribbon-${viewport.name}-${safeName(phase)}.png`) });
-          }
+          await focused(page, '.route-panel', `current-s01-route-ribbon-${viewport.name}-${safeName(phase)}.png`);
         }
 
         if (surface.id === 's02') {
-          const focus = page.locator('#focusTask');
-          if (await focus.count()) {
-            await focus.screenshot({ path: path.join(outputDir, `current-s02-focus-task-${viewport.name}-${safeName(phase)}.png`) });
+          await focused(page, '#focusTask', `current-s02-focus-task-${viewport.name}-${safeName(phase)}.png`);
+          const missingEvidence = page.locator('[data-task="TSK-2052"]');
+          if (await missingEvidence.count()) {
+            await missingEvidence.click();
+            await focused(page, '#focusTask', `current-s02-evidence-missing-${viewport.name}-${safeName(phase)}.png`);
           }
         }
 
         if (surface.id === 's05') {
-          const authority = page.locator('#decisionAuthority');
-          if (await authority.count()) {
-            await authority.screenshot({ path: path.join(outputDir, `current-s05-authority-${viewport.name}-${safeName(phase)}.png`) });
+          await focused(page, '#decisionAuthority', `current-s05-authority-${viewport.name}-${safeName(phase)}.png`);
+          for (const [id, label] of [['DEV-118', 'authority-denied'], ['DEV-054', 'evidence-missing'], ['DEV-244', 'conflict']]) {
+            const row = page.locator(`[data-deviation="${id}"]`);
+            if (await row.count()) {
+              await row.click();
+              await focused(page, '#decisionAuthority', `current-s05-${label}-${viewport.name}-${safeName(phase)}.png`);
+            }
+          }
+        }
+
+        if (surface.id === 's06') {
+          const rejected = page.locator('[data-review="REV-812"]');
+          if (await rejected.count()) {
+            await rejected.click();
+            await focused(page, '#reviewAuthority', `current-s06-verification-rejected-${viewport.name}-${safeName(phase)}.png`);
           }
         }
 
