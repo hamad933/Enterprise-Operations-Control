@@ -118,6 +118,24 @@ async function openChecked(browser, surface, viewport) {
     }
   }
 
+  if (viewportName === 'tablet' && ['attention', 'work'].includes(surfaceName)) {
+    const tabletDock = await page.evaluate(() => {
+      const bar = document.querySelector('.mobile-bar');
+      const links = [...bar.querySelectorAll('a')].map((node) => node.getBoundingClientRect());
+      const box = bar.getBoundingClientRect();
+      return {
+        count: links.length,
+        tops: links.map((rect) => Math.round(rect.top)),
+        width: Math.round(box.width),
+        visible: getComputedStyle(bar).display !== 'none'
+      };
+    });
+    assert.equal(tabletDock.visible, true, `${surfaceName}/tablet: navigation dock hidden`);
+    assert.equal(tabletDock.count, 5, `${surfaceName}/tablet: navigation dock must expose five primary destinations`);
+    assert.ok(Math.max(...tabletDock.tops) - Math.min(...tabletDock.tops) <= 1, `${surfaceName}/tablet: navigation items wrapped to multiple rows`);
+    assert.ok(tabletDock.width <= 722, `${surfaceName}/tablet: navigation dock is too wide (${tabletDock.width}px)`);
+  }
+
   return page;
 }
 
