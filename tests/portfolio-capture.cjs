@@ -77,7 +77,7 @@ async function snapElement(page,selector,name){
     await page.close();
 
     page=await open(browser,surfaces[3],desktop);
-    await snapElement(page,'[data-kpi-contract]','focus-s04-kpi-definition.png');
+    await snapElement(page,'.kpi-contract','focus-s04-kpi-definition.png');
     await snapElement(page,'.process-ribbon','focus-s04-progression.png');
     await page.close();
 
