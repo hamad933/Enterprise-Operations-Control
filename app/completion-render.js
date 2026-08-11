@@ -1,0 +1,255 @@
+import {
+  COMPLETION_META,
+  accessProfiles,
+  assets,
+  auditEvents,
+  delegations,
+  deviations,
+  kpis,
+  reviews,
+  sites,
+  surfaces
+} from './completion-data.js';
+import {
+  evaluateAssetAuthority,
+  evaluateDecisionAuthority,
+  evaluateProfileOperationalAuthority,
+  evaluateReviewAuthority,
+  runtimeDeviation,
+  runtimeReview
+} from './completion-state.js';
+
+const byId = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+})[char]);
+const ltr = (value) => `<bdi class="ltr" dir="ltr">${escapeHtml(value)}</bdi>`;
+
+const surfaceLinks = Object.freeze([
+  { id: 'attention', code: 'S01', label: 'الانتباه', href: './index.html' },
+  { id: 'work', code: 'S02', label: 'الأعمال', href: './work-queue.html' },
+  ...surfaces.map((surface) => ({ ...surface, href: `./operations.html?surface=${surface.id}` }))
+]);
+
+function toneFor(code) {
+  if (['AUTHORIZED', 'NORMAL', 'APPROVED', 'VALIDATED'].includes(code)) return 'tone-ok';
+  if (['DEVIATION', 'DECISION_PENDING', 'PENDING_VERIFICATION', 'VALIDATION_REQUIRED', 'VERIFY'].includes(code)) return 'tone-warn';
+  if (['AUTHORITY_DENIED', 'OUT_OF_SCOPE', 'CONFLICT', 'EVIDENCE_MISSING', 'VERIFICATION_REJECTED', 'CRITICAL'].includes(code)) return 'tone-danger';
+  return 'tone-muted';
+}
+
+function chip(code, className = 'tech-chip') {
+  return `<bdi class="${className} ${toneFor(code)}" dir="ltr">${escapeHtml(code)}</bdi>`;
+}
+
+function metric(label, value) {
+  return `<div><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+}
+
+function fact(label, value, { technical = false } = {}) {
+  return `<div class="fact"><span>${escapeHtml(label)}</span><strong>${technical ? ltr(value) : escapeHtml(value)}</strong></div>`;
+}
+
+function authorityBox(result, id = '') {
+  return `<div class="authority-box ${result.allowed ? 'allowed' : 'denied'}" ${id ? `id="${id}"` : ''}>
+    <strong>${ltr(result.code)}</strong>
+    <p>${escapeHtml(result.reason)}</p>
+  </div>`;
+}
+
+function history(items = []) {
+  return `<div class="trace">${items.map((item) => {
+    const parts = String(item).split(' — ');
+    return `<div class="trace-step"><span class="trace-time">${escapeHtml(parts[0] ?? '')}</span><span class="trace-dot" aria-hidden="true"></span><span class="trace-copy"><strong>${escapeHtml(parts.slice(1).join(' — ') || item)}</strong></span></div>`;
+  }).join('')}</div>`;
+}
+
+export function renderShell(state) {
+  const surface = surfaces.find((item) => item.id === state.surfaceId) ?? surfaces[0];
+  document.title = `RP02 — ${surface.title}`;
+  document.documentElement.dataset.surface = surface.id;
+  byId('completionSynthetic').textContent = COMPLETION_META.syntheticNotice;
+  byId('surfaceEyebrow').textContent = surface.eyebrow;
+  byId('surfaceCode').textContent = `${surface.code} / ${surface.eyebrow}`;
+  byId('surfaceTitle').textContent = surface.title;
+  byId('surfaceDescription').textContent = surface.description;
+  byId('completionBoundary').innerHTML = '<strong>حد السلطة:</strong> الرؤية التشغيلية عبر المواقع لا تمنح حق التنفيذ أو القرار أو الاعتماد. كل إجراء يُقيّم على مستوى الموقع والدور والدليل والحالة الحالية.';
+
+  byId('completionNav').innerHTML = surfaceLinks.map((link) => `
+    <a href="${link.href}" class="${link.id === surface.id ? 'active' : ''}" ${link.id === surface.id ? 'aria-current="page"' : ''}>
+      <span class="nav-code">${escapeHtml(link.code)}</span><span>${escapeHtml(link.label)}</span>
+    </a>`).join('');
+
+  const mobile = [surfaceLinks[0], surfaceLinks[1], surfaceLinks.find((item) => item.id === surface.id), surfaceLinks.find((item) => item.id === 'administration')]
+    .filter((item, index, list) => item && list.findIndex((candidate) => candidate.id === item.id) === index);
+  byId('completionMobileNav').innerHTML = mobile.map((link) => `
+    <a href="${link.href}" class="${link.id === surface.id ? 'active' : ''}" ${link.id === surface.id ? 'aria-current="page"' : ''}>
+      <span>${escapeHtml(link.label)}</span>
+    </a>`).join('');
+}
+
+function filtered(items, query, fields) {
+  const needle = String(query ?? '').toLocaleLowerCase('ar');
+  if (!needle) return items;
+  return items.filter((item) => fields.map((field) => item[field] ?? '').join(' ').toLocaleLowerCase('ar').includes(needle));
+}
+
+function renderSites(state) {
+  const selectedSite = sites.find((item) => item.id === state.selectedSiteId) ?? sites[0];
+  const selectedAsset = assets.find((item) => item.id === state.selectedAssetId) ?? assets[0];
+  const authority = evaluateAssetAuthority(state, selectedAsset.id);
+  const visibleAssets = filtered(assets, state.searchTerm, ['id', 'name', 'type', 'status', 'owner', 'work', 'deviation', 'kpi']);
+  const siteRows = filtered(sites, state.searchTerm, ['name', 'branch', 'health', 'owner']);
+
+  return `
+    <div class="metric-strip">
+      ${metric('مواقع مرئية', sites.length)}${metric('أصول اصطناعية', assets.length)}${metric('أعمال مفتوحة', sites.reduce((sum, item) => sum + item.openWork, 0))}${metric('انحرافات مرتبطة', sites.reduce((sum, item) => sum + item.deviations, 0))}
+    </div>
+    <div class="surface-layout">
+      <div class="surface-main">
+        <section class="panel">
+          <div class="panel-head"><div><h2>هرمية المواقع</h2><p>اختيار الموقع يغيّر السياق التفصيلي فقط؛ ولا يوسّع سلطة الإجراء.</p></div><span class="status-chip">Central Region</span></div>
+          <div class="entity-list" id="siteList">${siteRows.length ? siteRows.map((site) => `
+            <button class="entity-row ${site.id === selectedSite.id ? 'selected' : ''}" data-site="${site.id}" aria-pressed="${site.id === selectedSite.id}">
+              <span class="entity-title"><strong>${escapeHtml(site.name)}</strong><small>${escapeHtml(site.branch)}</small></span>
+              <span>${chip(site.healthCode)}</span>
+              <span class="cell-note">${escapeHtml(site.owner)}</span>
+              <span class="cell-note">${site.assets} أصل · ${site.openWork} عمل</span>
+            </button>`).join('') : '<div class="empty-inline">لا توجد مواقع مطابقة لعبارة البحث.</div>'}</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>مخزون الأصول</h2><p>علاقات مباشرة بالعمل وKPI والانحراف دون تحويل السطح إلى معرض بطاقات.</p></div><span class="status-chip">${visibleAssets.length} أصل</span></div>
+          <div class="entity-list" id="assetList">${visibleAssets.length ? visibleAssets.map((asset) => {
+            const site = sites.find((item) => item.id === asset.siteId);
+            return `<button class="entity-row ${asset.id === selectedAsset.id ? 'selected' : ''}" data-asset="${asset.id}" aria-pressed="${asset.id === selectedAsset.id}">
+              <span class="entity-title"><strong>${ltr(asset.id)} · ${escapeHtml(asset.name)}</strong><small>${escapeHtml(site?.name ?? '')} · ${escapeHtml(asset.type)}</small></span>
+              <span class="status-chip ${asset.health < 70 ? 'tone-danger' : 'tone-warn'}">${asset.health}% صحة</span>
+              <span class="cell-note">${ltr(asset.work)} · ${ltr(asset.deviation)}</span>
+              <span class="cell-note">${escapeHtml(asset.owner)}</span>
+            </button>`;
+          }).join('') : '<div class="empty-inline">لا توجد أصول مطابقة لعبارة البحث.</div>'}</div>
+        </section>
+      </div>
+      <aside class="surface-side">
+        <section class="panel"><div class="panel-body">
+          <h2 class="detail-title">${ltr(selectedAsset.id)} · ${escapeHtml(selectedAsset.name)}</h2>
+          <div class="detail-sub">${escapeHtml(sites.find((item) => item.id === selectedAsset.siteId)?.name ?? '')} · ${escapeHtml(selectedAsset.type)}</div>
+          <div class="fact-grid">
+            ${fact('الحالة', selectedAsset.status)}${fact('المالك', selectedAsset.owner)}${fact('العمل', selectedAsset.work, { technical: true })}${fact('الانحراف', selectedAsset.deviation, { technical: true })}${fact('KPI مرتبط', selectedAsset.kpi, { technical: true })}${fact('الصحة', `${selectedAsset.health}%`)}
+          </div>
+          <div style="margin-top:9px">${authorityBox(authority, 'assetAuthority')}</div>
+          <div class="action-row"><a class="secondary-action" href="./work-queue.html">فتح سياق الأعمال</a><button id="assetActionButton" class="primary-action" type="button" ${authority.allowed ? '' : 'disabled'} data-action="asset-context">مراجعة الإجراء ضمن الموقع</button></div>
+        </div></section>
+        <section class="panel"><div class="panel-head"><div><h3>السياق التشغيلي والتاريخ</h3><p>آخر الأحداث المرتبطة بهذا الأصل.</p></div></div><div class="panel-body">${history(selectedAsset.history)}</div></section>
+      </aside>
+    </div>`;
+}
+
+function kpiProcess(kpi, state) {
+  const isValidated = kpi.deviation && state.runtime.validated.includes(kpi.deviation);
+  return `<div class="process-ribbon" aria-label="مسار KPI إلى القرار">
+    <div class="process-step active"><strong>1 · القياس</strong><small>${ltr(kpi.id)} · ${escapeHtml(kpi.current)}</small></div>
+    <div class="process-step ${kpi.status !== 'NORMAL' ? 'active' : ''}"><strong>2 · كشف الانحراف</strong><small>${kpi.deviation ? ltr(kpi.deviation) : 'لا يوجد تجاوز'}</small></div>
+    <div class="process-step ${isValidated ? 'active' : ''}"><strong>3 · التحقق</strong><small>${isValidated ? 'VALIDATED' : 'يتطلب فحص الدليل'}</small></div>
+    <div class="process-step"><strong>4 · السلطة / القرار</strong><small id="kpiDecisionState">DECISION_NOT_CREATED</small></div>
+    <div class="process-step"><strong>5 · الإجراء التصحيحي</strong><small>لا يُنشأ تلقائيًا من KPI</small></div>
+    <div class="process-step"><strong>6 · مراقبة النتيجة</strong><small>لاحقة للقرار والتنفيذ</small></div>
+  </div>`;
+}
+
+function renderPerformance(state) {
+  const selected = kpis.find((item) => item.id === state.selectedKpiId) ?? kpis[0];
+  const list = filtered(kpis, state.searchTerm, ['id', 'name', 'source', 'scope', 'period', 'owner', 'status']);
+  const max = Math.max(...selected.trend.map((value) => Number.parseFloat(value))) || 1;
+  return `
+    <div class="metric-strip">${metric('تعريفات KPI', kpis.length)}${metric('انحرافات مكتشفة', kpis.filter((item) => item.deviation).length)}${metric('مصادر موثقة', kpis.length)}${metric('طبيعي', kpis.filter((item) => item.status === 'NORMAL').length)}</div>
+    <div class="surface-layout"><div class="surface-main">
+      <section class="panel"><div class="panel-head"><div><h2>سجل مؤشرات القياس</h2><p>كل KPI يحمل عقده الدلالي قبل أي تفسير أو قرار.</p></div></div><div class="entity-list">${list.length ? list.map((item) => `<button class="entity-row ${item.id === selected.id ? 'selected' : ''}" data-kpi="${item.id}" aria-pressed="${item.id === selected.id}"><span class="entity-title"><strong>${ltr(item.id)} · ${escapeHtml(item.name)}</strong><small>${escapeHtml(item.scope)}</small></span><span>${chip(item.status)}</span><span class="cell-note">${escapeHtml(item.current)} ${escapeHtml(item.unit)}</span><span class="cell-note">${escapeHtml(item.owner)}</span></button>`).join('') : '<div class="empty-inline">لا توجد مؤشرات مطابقة لعبارة البحث.</div>'}</div></section>
+      <section class="panel"><div class="panel-head"><div><h2>Measure → Detect → Validate → Decide → Act → Monitor</h2><p>تجاوز KPI لا يتحول تلقائيًا إلى قرار أو إجراء.</p></div></div><div class="panel-body">${kpiProcess(selected, state)}</div></section>
+    </div><aside class="surface-side">
+      <section class="panel"><div class="panel-body"><h2 class="detail-title">${ltr(selected.id)}</h2><div class="detail-sub">${escapeHtml(selected.name)}</div>
+        <div class="kpi-contract" data-kpi-contract>
+          ${fact('Source', selected.source)}${fact('Scope', selected.scope)}${fact('Period', selected.period)}${fact('Owner', selected.owner)}${fact('Target', selected.target)}${fact('Threshold', selected.threshold)}${fact('Current observation', `${selected.current} ${selected.unit}`)}${fact('Evidence / lineage', `${selected.evidence} · ${selected.lineage}`)}
+        </div>
+        <div class="action-row"><button class="primary-action" type="button" data-action="validate-kpi" data-kpi-id="${selected.id}" ${!selected.deviation ? 'disabled' : ''}>تحقق من الانحراف المرتبط</button></div>
+      </div></section>
+      <section class="panel"><div class="panel-head"><div><h3>اتجاه الملاحظة</h3><p>قيم اصطناعية للفترة الحالية.</p></div>${chip(selected.status)}</div><div class="panel-body"><div class="trend" role="img" aria-label="اتجاه ${escapeHtml(selected.name)}">${selected.trend.map((value) => `<i data-value="${escapeHtml(value)}" style="height:${Math.max(16, (Number.parseFloat(value) / max) * 78)}%"></i>`).join('')}</div><div class="cell-note">Lineage: ${ltr(selected.lineage)}</div></div></section>
+    </aside></div>`;
+}
+
+function renderDecisions(state) {
+  const selected = runtimeDeviation(state, state.selectedDeviationId) ?? runtimeDeviation(state, deviations[0].id);
+  const authority = evaluateDecisionAuthority(state, selected.id);
+  const list = filtered(deviations.map((item) => runtimeDeviation(state, item.id)), state.searchTerm, ['id', 'title', 'scope', 'validation', 'authority', 'decision', 'owner']);
+  return `<div class="metric-strip">${metric('انحرافات مفتوحة', deviations.length)}${metric('قرار معلّق', deviations.filter((item) => item.decision === 'DECISION_PENDING').length)}${metric('قيود سلطة', deviations.filter((item) => item.authority !== 'AUTHORIZED').length)}${metric('إجراء متأخر', deviations.filter((item) => item.overdue).length)}</div>
+    <div class="surface-layout"><div class="surface-main">
+      <section class="panel"><div class="panel-head"><div><h2>طابور الانحرافات</h2><p>الظهور في الطابور لا يعني امتلاك سلطة القرار.</p></div></div><div class="entity-list">${list.length ? list.map((item) => `<button class="entity-row ${item.id === selected.id ? 'selected' : ''}" data-deviation="${item.id}" aria-pressed="${item.id === selected.id}"><span class="entity-title"><strong>${ltr(item.id)} · ${escapeHtml(item.title)}</strong><small>${escapeHtml(item.scope)}</small></span><span>${chip(item.validation)}</span><span>${chip(item.authority)}</span><span class="cell-note">${escapeHtml(item.owner)}</span></button>`).join('') : '<div class="empty-inline">لا توجد انحرافات مطابقة لعبارة البحث.</div>'}</div></section>
+      <section class="panel"><div class="panel-head"><div><h2>مسار التحكم</h2><p>تثبيت الانحراف يسبق القرار؛ والقرار يسبق الإجراء التصحيحي.</p></div></div><div class="panel-body"><div class="process-ribbon"><div class="process-step active"><strong>Measure</strong><small>${ltr(selected.sourceKpi)}</small></div><div class="process-step active"><strong>Detect</strong><small>${ltr(selected.id)}</small></div><div class="process-step ${selected.validation === 'VALIDATED' ? 'active' : ''}"><strong>Validate</strong><small>${ltr(selected.validation)}</small></div><div class="process-step ${selected.decision === 'DECIDED' ? 'active' : ''}"><strong>Decision</strong><small>${ltr(selected.decision)}</small></div><div class="process-step"><strong>Corrective Action</strong><small>${selected.correctiveAction ? ltr(selected.correctiveAction) : 'غير مُنشأ'}</small></div><div class="process-step"><strong>Monitor</strong><small>${escapeHtml(selected.outcome)}</small></div></div></div></section>
+    </div><aside class="surface-side"><section class="panel"><div class="panel-body"><h2 class="detail-title">${ltr(selected.id)}</h2><div class="detail-sub">${escapeHtml(selected.title)}</div><div class="fact-grid">${fact('النطاق', selected.scope)}${fact('الدليل', selected.evidence)}${fact('المالك', selected.owner)}${fact('الاستحقاق', selected.due)}${fact('الإجراء التصحيحي', selected.correctiveAction ?? 'غير متاح', { technical: Boolean(selected.correctiveAction) })}${fact('حالة المتابعة', selected.overdue ? 'CORRECTIVE_ACTION_OVERDUE' : selected.outcome)}</div><div style="margin-top:9px">${authorityBox(authority, 'decisionAuthority')}</div><div class="action-row"><button class="primary-action" type="button" data-action="decide" data-deviation-id="${selected.id}" ${authority.allowed ? '' : 'disabled'}>${selected.decision === 'DECIDED' ? 'تم تسجيل القرار الاصطناعي' : 'تسجيل قرار اصطناعي'}</button></div></div></section><section class="panel"><div class="panel-head"><div><h3>Lineage / History</h3><p>السجل السابق لا يُستبدل عند تغيير الحالة.</p></div></div><div class="panel-body">${history(selected.history)}</div></section></aside></div>`;
+}
+
+function renderReviews(state) {
+  const selected = runtimeReview(state, state.selectedReviewId) ?? runtimeReview(state, reviews[0].id);
+  const authority = evaluateReviewAuthority(state, selected.id);
+  const list = filtered(reviews.map((item) => runtimeReview(state, item.id)), state.searchTerm, ['id', 'type', 'subject', 'requester', 'executor', 'reviewer', 'approver', 'state', 'authority']);
+  return `<div class="metric-strip">${metric('مراجعات', reviews.length)}${metric('جاهز للاعتماد', reviews.filter((item) => item.state === 'READY_FOR_APPROVAL').length)}${metric('تحقق مرفوض', reviews.filter((item) => item.state === 'VERIFICATION_REJECTED').length)}${metric('قيود سلطة', reviews.filter((item) => item.authority !== 'AUTHORIZED').length)}</div>
+    <div class="surface-layout"><div class="surface-main">
+      <section class="panel"><div class="panel-head"><div><h2>المراجعات والاعتمادات</h2><p>Requester ≠ Executor ≠ Reviewer / Verifier ≠ Approver ≠ Auditor.</p></div></div><div class="entity-list">${list.length ? list.map((item) => `<button class="entity-row ${item.id === selected.id ? 'selected' : ''}" data-review="${item.id}" aria-pressed="${item.id === selected.id}"><span class="entity-title"><strong>${ltr(item.id)} · ${escapeHtml(item.type)}</strong><small>${ltr(item.subject)} · ${escapeHtml(item.lineage)}</small></span><span>${chip(item.state)}</span><span>${chip(item.authority)}</span><span class="cell-note">${escapeHtml(item.reviewer)}</span></button>`).join('') : '<div class="empty-inline">لا توجد مراجعات مطابقة لعبارة البحث.</div>'}</div></section>
+      <section class="panel"><div class="panel-head"><div><h2>فصل الواجبات</h2><p>Admin presentation أو دور Approver لا يمنحان حق تجاوز مرحلة المراجع.</p></div></div><div class="panel-body"><div class="fact-grid">${fact('Requester', selected.requester)}${fact('Executor', selected.executor)}${fact('Reviewer / Verifier', selected.reviewer)}${fact('Approver / Decision Authority', selected.approver)}</div></div></section>
+    </div><aside class="surface-side"><section class="panel"><div class="panel-body"><h2 class="detail-title">${ltr(selected.id)}</h2><div class="detail-sub">${escapeHtml(selected.type)} · ${ltr(selected.subject)}</div><div class="fact-grid">${fact('الحالة', selected.state)}${fact('الدليل', selected.evidence)}${fact('الممثل الحالي', selected.currentActor)}${fact('Lineage', selected.lineage)}</div><div style="margin-top:9px">${authorityBox(authority, 'reviewAuthority')}</div><div class="action-row"><button class="primary-action" type="button" data-action="approve-review" data-review-id="${selected.id}" ${authority.allowed ? '' : 'disabled'}>${selected.state === 'APPROVED' ? 'تم الاعتماد الاصطناعي' : 'اعتماد المراجعة'}</button></div></div></section></aside></div>`;
+}
+
+function renderReports(state) {
+  const filters = ['all', 'AUTHORITY_DENIED', 'VERIFICATION_REJECTED', 'DECISION_PENDING', 'VALIDATION'];
+  const query = state.searchTerm.toLocaleLowerCase('ar');
+  const list = auditEvents.filter((event) => (state.auditFilter === 'all' || event.type === state.auditFilter) && (!query || [event.id,event.type,event.subject,event.actor,event.detail,event.link].join(' ').toLocaleLowerCase('ar').includes(query)));
+  return `<div class="metric-strip">${metric('أحداث تدقيق', auditEvents.length)}${metric('رفض سلطة', auditEvents.filter((item) => item.type === 'AUTHORITY_DENIED').length)}${metric('رفض تحقق', auditEvents.filter((item) => item.type === 'VERIFICATION_REJECTED').length)}${metric('قرارات معلقة', auditEvents.filter((item) => item.type === 'DECISION_PENDING').length)}</div>
+    <div class="surface-layout"><div class="surface-main"><section class="panel"><div class="panel-head"><div><h2>خط التدقيق التشغيلي</h2><p>ترتيب زمني يحفظ الروابط بدل نسخ السجلات التشغيلية كاملة.</p></div><div class="audit-filter">${filters.map((filter) => `<button type="button" data-audit-filter="${filter}" class="${state.auditFilter === filter ? 'active' : ''}">${filter === 'all' ? 'الكل' : escapeHtml(filter)}</button>`).join('')}</div></div><div id="auditTimeline">${list.length ? list.map((event) => `<article class="audit-event"><span><strong>${ltr(event.id)}</strong><small>${escapeHtml(event.time)}</small></span><span>${chip(event.type)}</span><span><strong>${escapeHtml(event.detail)}</strong><small>${escapeHtml(event.actor)}</small></span><span>${ltr(event.subject)}<br>${ltr(event.link)}</span></article>`).join('') : '<div class="empty-inline">لا توجد أحداث تدقيق مطابقة للمرشح الحالي.</div>'}</div></section></div>
+      <aside class="surface-side"><section class="panel"><div class="panel-head"><div><h3>قابلية التتبع</h3><p>أمثلة روابط عبر العمل وKPI والقرار والتحقق.</p></div></div><div class="panel-body"><div class="fact-grid">${fact('KPI → Deviation', 'KPI-HVAC-04 → DEV-203')}${fact('Deviation → Decision', 'DEV-203 → DEC-302')}${fact('Task → Verification', 'TSK-2059 → VERIFICATION_REJECTED')}${fact('Rework lineage', 'CL-01 → RW-02')}</div><p class="cell-note">لا توجد عملية PDF أو تصدير خادمي في هذه الموجة؛ العرض الحالي داخل المتصفح فقط.</p></div></section></aside></div>`;
+}
+
+function renderAdministration(state) {
+  const selected = accessProfiles.find((item) => item.id === state.selectedProfileId) ?? accessProfiles[0];
+  const runtimeCheck = state.runtime.accessChecks[selected.id] ?? evaluateProfileOperationalAuthority(selected.id, 'hq');
+  const list = filtered(accessProfiles, state.searchTerm, ['id', 'name', 'appClass']);
+  return `<div class="metric-strip">${metric('ملفات وصول', accessProfiles.length)}${metric('تفويضات نشطة', delegations.filter((item) => item.status === 'ACTIVE').length)}${metric('فئات تطبيق', 3)}${metric('مواقع تنظيمية', sites.length)}</div>
+    <div class="access-columns"><section class="panel"><div class="panel-head"><div><h2>المستخدمون ونطاق الوصول</h2><p>GUEST / AUTHENTICATED_USER / ADMIN منفصلة عن الأدوار التشغيلية.</p></div></div><div class="entity-list">${list.length ? list.map((profile) => `<button class="entity-row ${profile.id === selected.id ? 'selected' : ''}" data-profile="${profile.id}" aria-pressed="${profile.id === selected.id}"><span class="entity-title"><strong>${escapeHtml(profile.name)}</strong><small>${ltr(profile.id)} · ${profile.operationalRoles.map(escapeHtml).join(' / ')}</small></span><span>${chip(profile.appClass)}</span><span class="cell-note">${profile.sitesVisible.length} مواقع مرئية</span><span class="cell-note">${profile.actionSites.length} مواقع إجراء</span></button>`).join('') : '<div class="empty-inline">لا توجد ملفات وصول مطابقة لعبارة البحث.</div>'}</div></section>
+      <section class="panel"><div class="panel-body"><h2 class="detail-title">${escapeHtml(selected.name)}</h2><div class="detail-sub">${ltr(selected.id)} · ${ltr(selected.appClass)}</div><div class="fact-grid">${fact('فئة التطبيق', selected.appClass)}${fact('الدور التشغيلي', selected.operationalRoles.join(' / '))}${fact('نطاق الرؤية', selected.sitesVisible.map((id) => sites.find((site) => site.id === id)?.name ?? id).join('، '))}${fact('مواقع الإجراء', selected.actionSites.length ? selected.actionSites.map((id) => sites.find((site) => site.id === id)?.name ?? id).join('، ') : 'لا يوجد')}</div><div class="scope-tags" style="margin-top:9px">${selected.delegations.map((item) => `<span>${ltr(item)}</span>`).join('') || '<span>لا يوجد تفويض</span>'}</div><div style="margin-top:9px">${authorityBox(runtimeCheck, 'accessCheckResult')}</div><div class="action-row"><button class="primary-action" type="button" data-action="check-access" data-profile-id="${selected.id}">تحقق من سلطة المقر الرئيسي</button></div></div></section></div>
+      <section class="panel" style="margin-top:12px"><div class="panel-head"><div><h2>التفويضات المحدودة</h2><p>النطاق والانتهاء جزء من التفويض ولا يرفع فئة التطبيق تلقائيًا.</p></div></div><div class="entity-list">${delegations.map((item) => `<div class="entity-row"><span class="entity-title"><strong>${ltr(item.id)} · ${escapeHtml(item.role)}</strong><small>${escapeHtml(item.from)} → ${escapeHtml(item.to)}</small></span><span>${chip(item.status)}</span><span class="cell-note">${escapeHtml(item.scope)}</span><span class="cell-note">ينتهي: ${escapeHtml(item.expires)}</span></div>`).join('')}</div></section>`;
+}
+
+export function renderStateMode(mode) {
+  const node = byId('surfaceState');
+  node.className = 'completion-state';
+  node.hidden = mode === 'normal';
+  if (mode === 'normal') return;
+  const copy = {
+    loading: ['جارٍ تجهيز السطح', 'حالة تحميل تمثيلية؛ لا توجد شبكة أو API خلفية.'],
+    empty: ['لا توجد بيانات ضمن هذا النطاق', 'جرّب تغيير البحث أو عد إلى النطاق التشغيلي الحالي.'],
+    partial: ['بعض البيانات غير مكتملة', 'تم عرض البيانات المتاحة مع الحفاظ على حدود الدليل والقرار.'],
+    error: ['تعذر تجهيز هذا العرض', 'حالة خطأ تمثيلية محلية؛ لم تُنفّذ أي عملية خارجية.'],
+    readonly: ['وضع القراءة فقط', 'البيانات مرئية، لكن إجراءات التغيير معطلة في هذا الوضع.']
+  }[mode] ?? ['حالة غير معروفة', 'عد إلى العرض الطبيعي.'];
+  if (mode === 'error') node.classList.add('error');
+  if (mode === 'readonly') node.classList.add('readonly');
+  node.innerHTML = `<strong>${escapeHtml(copy[0])}</strong><p>${escapeHtml(copy[1])}</p>`;
+}
+
+export function renderRoot(state, mode = 'normal') {
+  const renderers = { sites: renderSites, performance: renderPerformance, decisions: renderDecisions, reviews: renderReviews, reports: renderReports, administration: renderAdministration };
+  const root = byId('completionRoot');
+  renderStateMode(mode);
+  if (['empty', 'error', 'loading'].includes(mode)) {
+    root.innerHTML = '';
+    return;
+  }
+  root.innerHTML = renderers[state.surfaceId]?.(state) ?? renderSites(state);
+  if (mode === 'readonly') {
+    root.querySelectorAll('[data-action]').forEach((button) => { button.disabled = true; });
+  }
+}
+
+export function renderAll(state, mode = 'normal') {
+  renderShell(state);
+  renderRoot(state, mode);
+}
