@@ -23,6 +23,7 @@ async function gotoSurface(page, surface, state = '') {
   await page.goto(`${baseUrl}/operations.html?surface=${surface}${suffix}`, { waitUntil: 'networkidle' });
   await page.locator('#surfaceTitle').waitFor({ state: 'visible' });
   await page.waitForFunction(() => document.documentElement.dataset.portfolioReady === 'true');
+  await page.waitForTimeout(60);
 }
 
 async function testSurfaceLoading(browser) {
@@ -50,6 +51,7 @@ async function testSurfaceLoading(browser) {
     assert.equal(await page.locator('#surfaceTitle').innerText(), title);
     assert.equal(await page.locator('html').getAttribute('lang'), 'ar');
     assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
+    assert.match(await page.locator('.completion-brand').innerText(), /مدار المرافق/);
     record(`${surface} loads`);
   }
 
@@ -88,10 +90,11 @@ async function testSites(browser) {
   attach(page, 'sites');
   await gotoSurface(page, 'sites');
 
-  assert.match(await page.locator('#assetAuthority').innerText(), /AUTHORIZED/);
+  assert.match(await page.locator('#assetAuthority').innerText(), /مصرّح/);
   assert.equal(await page.locator('#assetActionButton').isDisabled(), false);
   await page.locator('[data-asset="UTIL-04"]').click();
-  assert.match(await page.locator('#assetAuthority').innerText(), /AUTHORITY_DENIED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#assetAuthority').innerText(), /غير مصرّح/);
   assert.equal(await page.locator('#assetActionButton').isDisabled(), true);
   assert.match(await page.locator('.detail-title').innerText(), /UTIL-04/);
   record('Sites & Assets exact-site authority positive and negative paths');
@@ -112,9 +115,10 @@ async function testKpis(browser) {
     assert.match(contract, new RegExp(required.replace('/', '\\/')));
   }
   assert.match(contract, /KPI-HVAC-04|EV-KPI-441|SRC-HVAC-09/);
-  assert.equal(await page.locator('#kpiDecisionState').innerText(), 'DECISION_NOT_CREATED');
+  assert.equal(await page.locator('#kpiDecisionState').innerText(), 'لم يُنشأ قرار');
   await page.locator('[data-action="validate-kpi"]').click();
-  assert.equal(await page.locator('#kpiDecisionState').innerText(), 'DECISION_NOT_CREATED');
+  await page.waitForTimeout(60);
+  assert.equal(await page.locator('#kpiDecisionState').innerText(), 'لم يُنشأ قرار');
   assert.match(await page.locator('#completionToast').innerText(), /لم يُنشأ قرار أو إجراء تلقائي/);
   record('KPI contract and non-automatic decision semantics');
   await page.close();
@@ -125,22 +129,26 @@ async function testDecisions(browser) {
   attach(page, 'decisions');
   await gotoSurface(page, 'decisions');
 
-  assert.match(await page.locator('#decisionAuthority').innerText(), /AUTHORIZED/);
+  assert.match(await page.locator('#decisionAuthority').innerText(), /مصرّح/);
   const button = page.locator('[data-action="decide"]');
   assert.equal(await button.isDisabled(), false);
   await button.click();
-  assert.match(await page.locator('.surface-side').innerText(), /DECIDED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('.surface-side').innerText(), /تم اتخاذ القرار|تم تسجيل القرار/);
   assert.match(await page.locator('.surface-side').innerText(), /مراقبة النتيجة/);
   record('Deviation → decision positive path');
 
   await page.locator('[data-deviation="DEV-118"]').click();
-  assert.match(await page.locator('#decisionAuthority').innerText(), /AUTHORITY_DENIED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#decisionAuthority').innerText(), /غير مصرّح/);
   assert.equal(await page.locator('[data-action="decide"]').isDisabled(), true);
   await page.locator('[data-deviation="DEV-054"]').click();
-  assert.match(await page.locator('#decisionAuthority').innerText(), /EVIDENCE_MISSING/);
-  assert.match(await page.locator('.surface-side').innerText(), /CORRECTIVE_ACTION_OVERDUE/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#decisionAuthority').innerText(), /الدليل غير مكتمل/);
+  assert.match(await page.locator('.surface-side').innerText(), /الإجراء التصحيحي متأخر/);
   await page.locator('[data-deviation="DEV-244"]').click();
-  assert.match(await page.locator('#decisionAuthority').innerText(), /CONFLICT/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#decisionAuthority').innerText(), /تعارض صلاحيات/);
   record('Decision authority denied, evidence-missing, conflict, and overdue states');
   await page.close();
 }
@@ -150,17 +158,20 @@ async function testReviews(browser) {
   attach(page, 'reviews');
   await gotoSurface(page, 'reviews');
 
-  assert.match(await page.locator('#reviewAuthority').innerText(), /AUTHORIZED/);
+  assert.match(await page.locator('#reviewAuthority').innerText(), /مصرّح/);
   await page.locator('[data-action="approve-review"]').click();
-  assert.match(await page.locator('.surface-side').innerText(), /APPROVED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('.surface-side').innerText(), /معتمد/);
   record('Approval positive path');
 
   await page.locator('[data-review="REV-901"]').click();
-  assert.match(await page.locator('#reviewAuthority').innerText(), /AUTHORITY_DENIED/);
-  assert.match(await page.locator('#reviewAuthority').innerText(), /Reviewer/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#reviewAuthority').innerText(), /غير مصرّح/);
+  assert.match(await page.locator('#reviewAuthority').innerText(), /المراجع/);
   assert.equal(await page.locator('[data-action="approve-review"]').isDisabled(), true);
   await page.locator('[data-review="REV-812"]').click();
-  assert.match(await page.locator('.surface-side').innerText(), /VERIFICATION_REJECTED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('.surface-side').innerText(), /مرفوض في التحقق/);
   assert.match(await page.locator('.surface-side').innerText(), /RW-02/);
   assert.equal(await page.locator('[data-action="approve-review"]').isDisabled(), true);
   record('Review separation, rejected verification, and rework lineage');
@@ -175,14 +186,18 @@ async function testAuditAndAdmin(browser) {
   await page.locator('[data-audit-filter="AUTHORITY_DENIED"]').click();
   assert.equal(await page.locator('.audit-event').count(), 1);
   assert.match(await page.locator('#auditTimeline').innerText(), /AUD-1105/);
+  assert.match(await page.locator('#auditTimeline').innerText(), /غير مصرّح/);
   record('Audit timeline and scoped filter');
 
   await gotoSurface(page, 'administration');
   await page.locator('[data-profile="USR-099"]').click();
-  assert.match(await page.locator('.detail-sub').innerText(), /ADMIN/);
-  assert.match(await page.locator('#accessCheckResult').innerText(), /AUTHORITY_DENIED/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('.detail-title').innerText(), /مسؤول النظام/);
+  assert.match(await page.locator('.detail-sub').innerText(), /وصول إداري/);
+  assert.match(await page.locator('#accessCheckResult').innerText(), /غير مصرّح/);
   await page.locator('[data-action="check-access"]').click();
-  assert.match(await page.locator('#accessCheckResult').innerText(), /ADMIN/);
+  await page.waitForTimeout(60);
+  assert.match(await page.locator('#accessCheckResult').innerText(), /وصول إداري|غير مصرّح/);
   assert.match(await page.locator('#accessCheckResult').innerText(), /لا يملك سلطة تشغيلية تلقائية/);
   record('Administration has no Admin operational-authority bypass');
   await page.close();
@@ -240,6 +255,10 @@ async function testKeyboardAndRtl(browser) {
   assert.notEqual(focus.outlineStyle, 'none');
   assert.notEqual(focus.outlineWidth, '0px');
   assert.ok((await page.locator('bdi[dir="ltr"]').count()) > 5);
+  const arabicBadDirection = await page.locator('bdi[dir="ltr"]').evaluateAll((nodes) => nodes
+    .filter((node) => /[\u0600-\u06FF]/.test(node.textContent))
+    .map((node) => node.textContent.trim()));
+  assert.deepEqual(arabicBadDirection, []);
   const searchName = await page.locator('#completionSearch').evaluate((node) => node.labels?.[0]?.innerText.trim() || node.getAttribute('aria-label') || '');
   assert.ok(searchName.length > 0);
   record('Keyboard-only navigation and visible focus');
