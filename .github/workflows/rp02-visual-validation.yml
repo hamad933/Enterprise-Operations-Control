@@ -74,7 +74,7 @@ jobs:
           S02_BASE_URL: http://127.0.0.1:4173/app
           RP02_COMPLETION_BASE_URL: http://127.0.0.1:4173/app
           RP02_VISUAL_BASE_URL: http://127.0.0.1:4173
-          RP02_VISUAL_PHASE: before
+          RP02_VISUAL_PHASE: after
           RP02_VISUAL_OUTPUT: visual-evidence
         run: |
           set -euo pipefail
@@ -100,7 +100,7 @@ jobs:
       - name: Upload retained visual evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: rp02-visual-baseline-${{ github.event.pull_request.head.sha }}
+          name: rp02-visual-final-${{ github.event.pull_request.head.sha }}
           path: visual-evidence/
           if-no-files-found: error
           retention-days: 30
