@@ -170,7 +170,11 @@ function sanitize(root=document.body){
     return parent && !['SCRIPT','STYLE','NOSCRIPT'].includes(parent.tagName) && node.nodeValue?.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;
   }});
   const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(node=>{ const next=replaceText(node.nodeValue); if(next!==node.nodeValue) node.nodeValue=next; });
+  nodes.forEach(node=>{
+    const next=replaceText(node.nodeValue);
+    if(next!==node.nodeValue) node.nodeValue=next;
+    if(node.nodeValue.trim()==='VALIDATION') node.nodeValue=node.nodeValue.replace('VALIDATION','التحقق');
+  });
   const labels=new Map([
     ['Source','المصدر'],['Scope','النطاق'],['Period','الفترة'],['Owner','المالك'],['Target','الهدف'],['Threshold','الحد'],
     ['Current observation','الملاحظة الحالية'],['Evidence / lineage','الدليل / التسلسل'],['KPI → Deviation','المؤشر ← الانحراف'],
