@@ -22,6 +22,7 @@ async function gotoSurface(page, surface, state = '') {
   const suffix = state ? `&state=${state}` : '';
   await page.goto(`${baseUrl}/operations.html?surface=${surface}${suffix}`, { waitUntil: 'networkidle' });
   await page.locator('#surfaceTitle').waitFor({ state: 'visible' });
+  await page.waitForFunction(() => document.documentElement.dataset.portfolioReady === 'true');
 }
 
 async function testSurfaceLoading(browser) {
@@ -68,13 +69,13 @@ async function testGlobalNavigation(browser) {
   record('All global navigation destinations present');
 
   await page.goto(`${baseUrl}/index.html`, { waitUntil: 'networkidle' });
-  await page.locator('.top-nav [data-placeholder*="المواقع"]').first().click();
+  await page.locator('.top-nav a[href*="operations.html?surface=sites"]').first().click();
   await page.waitForURL(/operations\.html\?surface=sites$/);
   assert.equal(await page.locator('#surfaceTitle').innerText(), 'المواقع والأصول');
   record('S01 → S03 navigation');
 
   await page.goto(`${baseUrl}/work-queue.html`, { waitUntil: 'networkidle' });
-  await page.locator('.top-nav [data-placeholder*="التحقق"]').first().click();
+  await page.locator('.top-nav a[href*="operations.html?surface=reviews"]').first().click();
   await page.waitForURL(/operations\.html\?surface=reviews$/);
   assert.equal(await page.locator('#surfaceTitle').innerText(), 'المراجعات والاعتمادات');
   record('S02 → S06 navigation');
@@ -106,8 +107,8 @@ async function testKpis(browser) {
   attach(page, 'performance');
   await gotoSurface(page, 'performance');
 
-  const contract = await page.locator('[data-kpi-contract]').innerText();
-  for (const required of ['Source', 'Scope', 'Period', 'Owner', 'Target', 'Threshold', 'Current observation', 'Evidence / lineage']) {
+  const contract = await page.locator('.kpi-contract').innerText();
+  for (const required of ['المصدر', 'النطاق', 'الفترة', 'المالك', 'الهدف', 'الحد', 'الملاحظة الحالية', 'الدليل / التسلسل']) {
     assert.match(contract, new RegExp(required.replace('/', '\\/')));
   }
   assert.match(contract, /KPI-HVAC-04|EV-KPI-441|SRC-HVAC-09/);
