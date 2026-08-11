@@ -31,6 +31,7 @@ async function open(browser,target,viewport){
   await page.goto(`${baseUrl}${target[1]}`,{waitUntil:'networkidle'});
   await page.locator(target[2]).waitFor({state:'visible'});
   await page.waitForFunction(()=>document.documentElement.dataset.portfolioReady==='true');
+  await page.waitForTimeout(80);
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}'});
   await page.evaluate(async()=>{ if(document.fonts?.ready) await document.fonts.ready; scrollTo(0,0); });
@@ -60,7 +61,10 @@ async function snapElement(page,selector,name){
     }
 
     const desktop=viewports[0];
+    const mobile=viewports[2];
+
     let page=await open(browser,surfaces[0],desktop);
+    await snapElement(page,'.app-header','focus-global-brand-header.png');
     await snapElement(page,'.route-panel','focus-s01-route-ribbon.png');
     await page.locator('.ledger-row').first().click();
     await page.locator('#focusPanel.open').waitFor();
@@ -82,16 +86,22 @@ async function snapElement(page,selector,name){
     await page.close();
 
     page=await open(browser,surfaces[4],desktop);
+    await snapElement(page,'.process-ribbon','focus-s05-process.png');
     await page.locator('[data-deviation="DEV-118"]').click();
+    await page.waitForTimeout(80);
     await snapElement(page,'#decisionAuthority','focus-s05-authority-denied.png');
     await page.locator('[data-deviation="DEV-203"]').click();
+    await page.waitForTimeout(80);
     await snapElement(page,'#decisionAuthority','focus-s05-authority-allowed.png');
     await page.close();
 
     page=await open(browser,surfaces[5],desktop);
+    await snapElement(page,'.surface-main .panel:nth-child(2)','focus-s06-role-separation.png');
     await page.locator('[data-review="REV-812"]').click();
+    await page.waitForTimeout(80);
     await snapElement(page,'.surface-side','focus-s06-rejected-rework.png');
     await page.locator('[data-review="REV-884"]').click();
+    await page.waitForTimeout(80);
     await snapElement(page,'.surface-side','focus-s06-approval-ready.png');
     await page.close();
 
@@ -102,13 +112,36 @@ async function snapElement(page,selector,name){
     page=await open(browser,surfaces[7],desktop);
     await page.locator('[data-profile="USR-099"]').click();
     await page.locator('[data-action="check-access"]').click();
+    await page.waitForTimeout(80);
     await snapElement(page,'.access-columns','focus-s08-access-vs-authority.png');
     await page.close();
 
+    page=await open(browser,surfaces[4],mobile);
+    await snapElement(page,'.process-ribbon','focus-mobile-s05-process.png');
+    await page.locator('[data-deviation="DEV-118"]').click();
+    await page.waitForTimeout(80);
+    await snapElement(page,'#decisionAuthority','focus-mobile-s05-authority-denied.png');
+    await page.close();
+
+    page=await open(browser,surfaces[5],mobile);
+    await snapElement(page,'.surface-main .panel:nth-child(2)','focus-mobile-s06-role-separation.png');
+    await page.locator('[data-review="REV-812"]').click();
+    await page.waitForTimeout(80);
+    await snapElement(page,'.surface-side','focus-mobile-s06-rejected-rework.png');
+    await page.close();
+
+    page=await open(browser,surfaces[7],mobile);
+    await page.locator('[data-profile="USR-099"]').click();
+    await page.locator('[data-action="check-access"]').click();
+    await page.waitForTimeout(80);
+    await snapElement(page,'.access-columns','focus-mobile-s08-access-vs-authority.png');
+    await page.close();
+
     fs.writeFileSync(path.join(outputDir,'README.txt'),[
-      'Enterprise Operations portfolio evidence',
+      'مدار المرافق — portfolio evidence',
       '24 exact-viewport page screenshots: S01–S08 at desktop 1440x960, tablet 900x1024, and mobile 390x844.',
-      'Focused evidence: S01 route/authority, S02 focus task, S03 asset authority, S04 definition/progression, S05 negative/positive authority, S06 rejected/approval, S07 chronology, S08 access-vs-authority.',
+      'Focused evidence includes global brand, S01 route/authority, S02 focus task, S03 asset authority, S04 definition/progression, S05 Arabic process and authority states, S06 Arabic role separation and rejection/approval, S07 chronology, and S08 access-vs-authority.',
+      'Mobile focused evidence is included for S05 process/authority, S06 roles/rejection, and S08 access/operational-role separation.',
       'All captures assert zero console/page errors and no horizontal overflow before writing.'
     ].join('\n'));
     console.log(`Portfolio evidence captured: ${fs.readdirSync(outputDir).length} files`);
