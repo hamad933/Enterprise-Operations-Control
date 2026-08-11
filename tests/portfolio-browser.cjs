@@ -21,15 +21,7 @@ const surfaces = [
   ['administration', '/app/operations.html?surface=administration', '#surfaceTitle']
 ];
 
-function scrubLegitimateOperationalCodes(text) {
-  return text
-    .replaceAll('VALIDATION_REQUIRED', 'OPERATIONAL_STATE')
-    .replaceAll('OUT_OF_SCOPE', 'OPERATIONAL_STATE')
-    .replaceAll('TEST', 'OPERATIONAL_STATE');
-}
-
 function assertNoDevelopmentLeakage(text, context) {
-  const scrubbed = scrubLegitimateOperationalCodes(text);
   const forbidden = [
     /\bRP02\b/i,
     /\bS0[1-8]\b/i,
@@ -44,10 +36,54 @@ function assertNoDevelopmentLeakage(text, context) {
     /\bAPI\b/,
     /\bPDF\b/,
     /اصطناعي(?:ة|ًا)?/,
-    /محاكاة/
+    /محاكاة/,
+    /\bAUTHORIZED\b/,
+    /\bAUTHORITY_DENIED\b/,
+    /\bOUT_OF_SCOPE\b/,
+    /\bEVIDENCE_MISSING\b/,
+    /\bVALIDATED\b/,
+    /\bDETECTED\b/,
+    /\bDECISION_PENDING\b/,
+    /\bPENDING_VERIFICATION\b/,
+    /\bREADY_FOR_APPROVAL\b/,
+    /\bVERIFICATION_REJECTED\b/,
+    /\bAUTHENTICATED_USER\b/,
+    /\bADMIN\b/,
+    /\bACTIVE\b/,
+    /\bCORRECTIVE_ACTION_OVERDUE\b/,
+    /\bVALIDATION_REQUIRED\b/,
+    /\bREWORK_ACTIVE\b/,
+    /\bEVIDENCE_REFRESH_REQUIRED\b/,
+    /\bREWORK_STARTED\b/,
+    /\bREWORK_CREATED\b/,
+    /\bDECIDED\b/,
+    /\bAPPROVED\b/,
+    /\bCRITICAL\b/,
+    /\bWARNING\b/,
+    /\bVERIFY\b/,
+    /\bNORMAL\b/,
+    /\bDEVIATION\b/,
+    /\bRequester\b/,
+    /\bExecutor\b/,
+    /Reviewer\s*\/\s*Verifier/i,
+    /Approver\s*\/\s*Decision Authority/i,
+    /\bOperations Manager\b/i,
+    /\bDecision Approver\b/i,
+    /\bAccess Administrator\b/i,
+    /\bReviewer\b/,
+    /\bVerifier\b/,
+    /\bApprover\b/,
+    /\bMeasure\b/,
+    /\bDetect\b/,
+    /\bValidate\b/,
+    /\bCorrective Action\b/,
+    /\bMonitor\b/,
+    /مسؤول النظام التجريبي/,
+    /النظام التجريبي/,
+    /Enterprise Operations/i
   ];
   for (const pattern of forbidden) {
-    assert.equal(pattern.test(scrubbed), false, `${context}: visible development leakage matched ${pattern}`);
+    assert.equal(pattern.test(text), false, `${context}: visible/internal presentation leakage matched ${pattern}`);
   }
 }
 
@@ -63,16 +99,21 @@ async function openChecked(browser, surface, viewport) {
   await page.goto(`${baseUrl}${target}`, { waitUntil: 'networkidle' });
   await page.locator(ready).waitFor({ state: 'visible' });
   await page.waitForFunction(() => document.documentElement.dataset.portfolioReady === 'true');
-  await page.waitForTimeout(60);
+  await page.waitForTimeout(80);
 
   const result = await page.evaluate(() => {
     const root = document.documentElement;
+    const visible = (node) => {
+      const style = getComputedStyle(node);
+      return style.display !== 'none' && style.visibility !== 'hidden' && node.getClientRects().length > 0;
+    };
     const bodyText = document.body.innerText;
+    const accessiblePresentation = [...document.querySelectorAll('[aria-label],[title],[placeholder]')]
+      .filter(visible)
+      .flatMap((node) => ['aria-label','title','placeholder'].map((name) => node.getAttribute(name)).filter(Boolean))
+      .join('\n');
     const unnamed = [...document.querySelectorAll('button,a[href],input,select')]
-      .filter((node) => {
-        const style = getComputedStyle(node);
-        return style.display !== 'none' && style.visibility !== 'hidden' && node.getClientRects().length > 0;
-      })
+      .filter(visible)
       .filter((node) => {
         const aria = node.getAttribute('aria-label')?.trim();
         const title = node.getAttribute('title')?.trim();
@@ -83,19 +124,24 @@ async function openChecked(browser, surface, viewport) {
         return !(aria || title || text || placeholder || labelled || label);
       })
       .map((node) => `${node.tagName.toLowerCase()}#${node.id || ''}.${node.className || ''}`);
-    const ids = [...document.querySelectorAll('bdi[dir="ltr"],.ltr')].slice(0, 30).map((node) => ({
+    const ids = [...document.querySelectorAll('bdi[dir="ltr"],.ltr')].slice(0, 40).map((node) => ({
       text: node.textContent.trim(),
       direction: getComputedStyle(node).direction
     }));
+    const humanizedRtl = [...document.querySelectorAll('bdi[dir="rtl"]')]
+      .filter((node) => /[\u0600-\u06FF]/.test(node.textContent))
+      .map((node) => getComputedStyle(node).direction);
     return {
       title: document.title,
       bodyText,
+      accessiblePresentation,
       lang: root.lang,
       dir: root.dir,
       scrollWidth: root.scrollWidth,
       clientWidth: root.clientWidth,
       unnamed,
-      ids
+      ids,
+      humanizedRtl
     };
   });
 
@@ -105,8 +151,14 @@ async function openChecked(browser, surface, viewport) {
   assert.deepEqual(consoleErrors, [], `${surfaceName}/${viewportName}: console errors ${consoleErrors.join(' | ')}`);
   assert.deepEqual(pageErrors, [], `${surfaceName}/${viewportName}: page errors ${pageErrors.join(' | ')}`);
   assert.deepEqual(result.unnamed, [], `${surfaceName}/${viewportName}: unnamed controls ${result.unnamed.join(', ')}`);
-  assertNoDevelopmentLeakage(`${result.title}\n${result.bodyText}`, `${surfaceName}/${viewportName}`);
+  assertNoDevelopmentLeakage(`${result.title}\n${result.bodyText}\n${result.accessiblePresentation}`, `${surfaceName}/${viewportName}`);
   assert.ok(result.ids.every((item) => item.direction === 'ltr'), `${surfaceName}/${viewportName}: technical identifier direction corrupted`);
+  assert.ok(result.humanizedRtl.every((direction) => direction === 'rtl'), `${surfaceName}/${viewportName}: Arabic presentation label direction corrupted`);
+
+  if (surfaceName === 'attention' && viewportName === 'desktop') {
+    assert.match(result.bodyText, /مدار المرافق/);
+    assert.match(result.bodyText, /شركة مدار المرافق للتشغيل والصيانة/);
+  }
 
   if (width <= 430) {
     const mobileTargets = await page.evaluate(() => [...document.querySelectorAll('.mobile-bar a,.completion-mobile-nav a,.primary-action:not([disabled])')]
@@ -173,7 +225,7 @@ async function semanticJourneys(browser) {
   await page.locator('[data-task="TSK-2041"]').click();
   assert.equal(await page.locator('#focusPrimaryAction').isEnabled(), true, 'S02: authorized closure request should be enabled');
   await page.locator('#focusPrimaryAction').click();
-  await page.waitForTimeout(80);
+  await page.waitForTimeout(100);
   assert.match(await page.locator('#focusClosure').innerText(), /بانتظار|التحقق/);
   await page.close();
 
@@ -181,32 +233,38 @@ async function semanticJourneys(browser) {
   const validate = page.locator('[data-action="validate-kpi"]');
   assert.equal(await validate.isEnabled(), true, 'S04: KPI validation action should be enabled for selected deviation');
   await validate.click();
-  await page.waitForTimeout(80);
-  assert.match(await page.locator('body').innerText(), /تم تثبيت التحقق|VALIDATED/);
+  await page.waitForTimeout(100);
+  assert.match(await page.locator('body').innerText(), /تم تثبيت التحقق|تم التحقق/);
   await page.close();
 
   page = await openChecked(browser, surfaces[4], viewport);
   await page.locator('[data-deviation="DEV-118"]').click();
   assert.equal(await page.locator('[data-action="decide"]').isDisabled(), true, 'S05: denied authority must block decision');
+  assert.match(await page.locator('#decisionAuthority').innerText(), /غير مصرّح/);
   await page.locator('[data-deviation="DEV-203"]').click();
   assert.equal(await page.locator('[data-action="decide"]').isEnabled(), true, 'S05: authorized decision should be enabled');
+  assert.match(await page.locator('#decisionAuthority').innerText(), /مصرّح/);
   await page.locator('[data-action="decide"]').click();
-  await page.waitForTimeout(80);
-  assert.match(await page.locator('body').innerText(), /DECIDED|تم تسجيل القرار/);
+  await page.waitForTimeout(100);
+  assert.match(await page.locator('body').innerText(), /تم اتخاذ القرار|تم تسجيل القرار/);
   await page.close();
 
   page = await openChecked(browser, surfaces[5], viewport);
   await page.locator('[data-review="REV-812"]').click();
   assert.equal(await page.locator('[data-action="approve-review"]').isDisabled(), true, 'S06: rejected/out-of-scope review must block approval');
+  assert.match(await page.locator('.surface-side').innerText(), /مرفوض في التحقق/);
   await page.locator('[data-review="REV-884"]').click();
   assert.equal(await page.locator('[data-action="approve-review"]').isEnabled(), true, 'S06: authorized approval should be enabled');
+  assert.match(await page.locator('.surface-side').innerText(), /جاهز للاعتماد|مصرّح/);
   await page.close();
 
   page = await openChecked(browser, surfaces[7], viewport);
   await page.locator('[data-profile="USR-099"]').click();
   await page.locator('[data-action="check-access"]').click();
-  await page.waitForTimeout(80);
-  assert.match(await page.locator('#accessCheckResult').innerText(), /AUTHORITY_DENIED/);
+  await page.waitForTimeout(100);
+  assert.match(await page.locator('#accessCheckResult').innerText(), /غير مصرّح/);
+  assert.match(await page.locator('.detail-sub').innerText(), /وصول إداري/);
+  assert.match(await page.locator('.access-columns').innerText(), /مسؤول النظام/);
   await page.close();
 }
 
@@ -217,8 +275,18 @@ async function stateSurfaces(browser) {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(`${baseUrl}/app/operations.html?surface=performance&state=${mode}`, { waitUntil: 'networkidle' });
     await page.waitForFunction(() => document.documentElement.dataset.portfolioReady === 'true');
-    const text = await page.locator('body').innerText();
-    assertNoDevelopmentLeakage(`${await page.title()}\n${text}`, `state/${mode}`);
+    const data = await page.evaluate(() => {
+      const visible = (node) => {
+        const style = getComputedStyle(node);
+        return style.display !== 'none' && style.visibility !== 'hidden' && node.getClientRects().length > 0;
+      };
+      const accessible = [...document.querySelectorAll('[aria-label],[title],[placeholder]')]
+        .filter(visible)
+        .flatMap((node) => ['aria-label','title','placeholder'].map((name) => node.getAttribute(name)).filter(Boolean))
+        .join('\n');
+      return { title: document.title, text: document.body.innerText, accessible };
+    });
+    assertNoDevelopmentLeakage(`${data.title}\n${data.text}\n${data.accessible}`, `state/${mode}`);
     assert.deepEqual(errors, [], `state/${mode}: page errors`);
     await page.close();
   }
