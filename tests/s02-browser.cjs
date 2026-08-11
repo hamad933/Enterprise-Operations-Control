@@ -47,7 +47,7 @@ async function testCoreJourneys(browser) {
   assert.equal(await page.locator('#attentionHeading').innerText(), 'أولويات الانتباه');
   record('S01 loads');
 
-  const workNav = page.locator('.top-nav [data-placeholder*="الأعمال"]').first();
+  const workNav = page.locator('.top-nav a[href$="work-queue.html"]').first();
   await workNav.click();
   await page.waitForURL(/work-queue\.html$/);
   await page.locator('#queueList').waitFor({ state: 'visible' });
@@ -147,9 +147,9 @@ async function testResponsive(browser, width, height, label) {
     queueHead: getComputedStyle(document.querySelector('.queue-head')).display
   }));
   assert.ok(metrics.scrollWidth <= metrics.clientWidth + 1, `${label} horizontal overflow: ${metrics.scrollWidth} > ${metrics.clientWidth}`);
-  assert.equal(metrics.layoutDisplay, 'grid');
 
   if (label === 'desktop') {
+    assert.equal(metrics.layoutDisplay, 'grid');
     const boxes = await page.evaluate(() => {
       const queue = document.querySelector('.queue-column').getBoundingClientRect();
       const focus = document.querySelector('.focus-task').getBoundingClientRect();
@@ -158,10 +158,18 @@ async function testResponsive(browser, width, height, label) {
     assert.ok(boxes.queueWidth > boxes.focusWidth);
     assert.ok(boxes.focusWidth >= 350);
   } else if (label === 'tablet') {
+    assert.equal(metrics.layoutDisplay, 'grid');
     assert.equal(metrics.layoutColumns.split(' ').length, 1);
   } else if (label === 'mobile') {
+    assert.equal(metrics.layoutDisplay, 'flex');
     assert.equal(metrics.mobileBar, 'grid');
     assert.equal(metrics.queueHead, 'none');
+    const mobileOrder = await page.evaluate(() => {
+      const queue = document.querySelector('.queue-column').getBoundingClientRect();
+      const focus = document.querySelector('.focus-task').getBoundingClientRect();
+      return { focusTop: focus.top, queueTop: queue.top };
+    });
+    assert.ok(mobileOrder.focusTop < mobileOrder.queueTop, 'mobile Focus Task must appear before the queue');
   }
 
   record(`${label} layout`, `${width}x${height}, no horizontal overflow`);
