@@ -37,6 +37,10 @@ function assertNoDevelopmentLeakage(text, context) {
     /\bPDF\b/,
     /اصطناعي(?:ة|ًا)?/,
     /محاكاة/,
+    /\bCOMPLETE\b/,
+    /\bAUTHORITY_CONFLICT\b/,
+    /\bAUTHORITY\b/,
+    /\bsynthetic\b/i,
     /\bAUTHORIZED\b/,
     /\bAUTHORITY_DENIED\b/,
     /\bOUT_OF_SCOPE\b/,
@@ -224,6 +228,9 @@ async function semanticJourneys(browser) {
   assert.equal(await page.locator('#focusPrimaryAction').isDisabled(), true, 'S02: missing evidence must block closure');
   await page.locator('[data-task="TSK-2041"]').click();
   assert.equal(await page.locator('#focusPrimaryAction').isEnabled(), true, 'S02: authorized closure request should be enabled');
+  const evidenceText = await page.locator('#focusEvidence').innerText();
+  assert.match(evidenceText, /مكتمل/, 'S02: complete evidence must be presented in Arabic');
+  assert.doesNotMatch(evidenceText, /\bCOMPLETE\b/, 'S02: raw COMPLETE leaked into evidence presentation');
   await page.locator('#focusPrimaryAction').click();
   await page.waitForTimeout(100);
   assert.match(await page.locator('#focusClosure').innerText(), /بانتظار|التحقق/);
@@ -256,6 +263,15 @@ async function semanticJourneys(browser) {
   await page.locator('[data-review="REV-884"]').click();
   assert.equal(await page.locator('[data-action="approve-review"]').isEnabled(), true, 'S06: authorized approval should be enabled');
   assert.match(await page.locator('.surface-side').innerText(), /جاهز للاعتماد|مصرّح/);
+  await page.close();
+
+  page = await openChecked(browser, surfaces[6], viewport);
+  const auditText = await page.locator('#auditTimeline').innerText();
+  assert.match(auditText, /تعارض الصلاحيات/, 'S07: authority conflict event must be presented in Arabic');
+  assert.match(auditText, /مقيّم سياسة الصلاحيات/, 'S07: policy evaluator actor must be client-safe Arabic');
+  assert.doesNotMatch(auditText, /\bAUTHORITY_CONFLICT\b/, 'S07: raw AUTHORITY_CONFLICT leaked into audit');
+  assert.doesNotMatch(auditText, /\bAUTHORITY\b/, 'S07: raw AUTHORITY leaked into audit');
+  assert.doesNotMatch(auditText, /\bsynthetic\b/i, 'S07: English synthetic actor leaked into audit');
   await page.close();
 
   page = await openChecked(browser, surfaces[7], viewport);
