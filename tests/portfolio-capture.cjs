@@ -54,7 +54,7 @@ async function snapElement(page,selector,name){
     for(const viewport of viewports){
       for(const target of surfaces){
         const page=await open(browser,target,viewport);
-        await page.screenshot({path:path.join(outputDir,`${target[0]}-${viewport[0]}.png`),fullPage:true});
+        await page.screenshot({path:path.join(outputDir,`${target[0]}-${viewport[0]}.png`),fullPage:false});
         await page.close();
       }
     }
@@ -107,7 +107,7 @@ async function snapElement(page,selector,name){
 
     fs.writeFileSync(path.join(outputDir,'README.txt'),[
       'Enterprise Operations portfolio evidence',
-      '24 page screenshots: S01–S08 at desktop/tablet/mobile.',
+      '24 exact-viewport page screenshots: S01–S08 at desktop 1440x960, tablet 900x1024, and mobile 390x844.',
       'Focused evidence: S01 route/authority, S02 focus task, S03 asset authority, S04 definition/progression, S05 negative/positive authority, S06 rejected/approval, S07 chronology, S08 access-vs-authority.',
       'All captures assert zero console/page errors and no horizontal overflow before writing.'
     ].join('\n'));
