@@ -98,6 +98,26 @@ function buildLegacyNav(){
   }
 }
 
+function syncLegacyMobileBar(){
+  const mobile=document.querySelector('.mobile-bar');
+  if(!mobile) return;
+  const tablet=window.matchMedia('(min-width:621px) and (max-width:980px)').matches;
+  const compact=window.matchMedia('(max-width:980px)').matches;
+  if(compact) mobile.style.setProperty('grid-template-columns','repeat(5,minmax(0,1fr))','important');
+  else mobile.style.removeProperty('grid-template-columns');
+  if(tablet){
+    mobile.style.setProperty('left','50%');
+    mobile.style.setProperty('right','auto');
+    mobile.style.setProperty('width','min(720px, calc(100vw - 32px))');
+    mobile.style.setProperty('transform','translateX(-50%)');
+  }else{
+    mobile.style.removeProperty('left');
+    mobile.style.removeProperty('right');
+    mobile.style.removeProperty('width');
+    mobile.style.removeProperty('transform');
+  }
+}
+
 function brand(){
   setText(document.querySelector('.brand-title'),'Enterprise Operations');
   setText(document.querySelector('.brand-sub'),surface()==='work'?'قائمة الأعمال':'مركز الانتباه التنفيذي');
@@ -185,7 +205,7 @@ function sanitize(root=document.body){
 
 let scheduled=false;
 function refresh(){
-  scheduled=false; brand(); s01(); s02(); enforceWorkQueuePriority(); completion(); sanitize();
+  scheduled=false; syncLegacyMobileBar(); brand(); s01(); s02(); enforceWorkQueuePriority(); completion(); sanitize();
   if(document.documentElement.dataset.portfolioReady!=='true') document.documentElement.dataset.portfolioReady='true';
 }
 function schedule(){ if(scheduled) return; scheduled=true; requestAnimationFrame(refresh); }
@@ -193,4 +213,5 @@ function schedule(){ if(scheduled) return; scheduled=true; requestAnimationFrame
 loadStyle(); buildLegacyNav();
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',schedule,{once:true}); else schedule();
 new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+window.matchMedia('(max-width:980px)').addEventListener?.('change',schedule);
 window.matchMedia('(max-width:620px)').addEventListener?.('change',schedule);
