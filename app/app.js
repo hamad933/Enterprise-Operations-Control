@@ -155,6 +155,16 @@ function toggleNotifications() {
   scopeButton.setAttribute('aria-expanded', 'false');
 }
 
+function routePlaceholder(text) {
+  if (text.includes('الأعمال')) return './work-queue.html';
+  if (text.includes('المواقع') || text.includes('الأصل')) return './operations.html?surface=sites';
+  if (text.includes('التحقق')) return './operations.html?surface=reviews';
+  if (text.includes('القرارات')) return './operations.html?surface=decisions';
+  if (text.includes('التقارير')) return './operations.html?surface=reports';
+  if (text.includes('الإعدادات') || text.includes('المزيد')) return './operations.html?surface=administration';
+  return null;
+}
+
 function initialize() {
   byId('syntheticNotice').textContent = APP_META.syntheticNotice;
   byId('brandSymbol').innerHTML = icon('building', 22);
@@ -202,11 +212,12 @@ document.addEventListener('click', (event) => {
 
   const placeholder = event.target.closest('[data-placeholder]');
   if (placeholder) {
-    if (placeholder.dataset.placeholder.includes('الأعمال')) {
-      window.location.href = './work-queue.html';
+    const target = routePlaceholder(placeholder.dataset.placeholder);
+    if (target) {
+      window.location.href = target;
       return;
     }
-    showToast(`${placeholder.dataset.placeholder}. لم يتم فتح مساحة إضافية.`);
+    showToast(`${placeholder.dataset.placeholder}. لا توجد مساحة أخرى مرتبطة بهذا التحكم.`);
   }
 });
 
@@ -281,9 +292,7 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
-  if (event.key === 'Escape') {
-    closeMenus();
-  }
+  if (event.key === 'Escape') closeMenus();
 });
 
 document.addEventListener('click', (event) => {
