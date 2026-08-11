@@ -58,7 +58,7 @@ async function openChecked(browser, surface, viewport) {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
-  page.on('pageerror', (error) => pageErrors.push(error.message);
+  page.on('pageerror', (error) => pageErrors.push(error.message));
 
   await page.goto(`${baseUrl}${target}`, { waitUntil: 'networkidle' });
   await page.locator(ready).waitFor({ state: 'visible' });
@@ -143,9 +143,7 @@ async function semanticJourneys(browser) {
   await page.locator('#focusPanel.open').waitFor();
   assert.equal(await page.locator('#focusPanel').getAttribute('aria-modal'), 'true');
   await page.keyboard.press('Escape');
-  await page.locator('#focusPanel.open').waitFor({ state: 'detached' }).catch(async () => {
-    await page.waitForFunction(() => !document.getElementById('focusPanel').classList.contains('open'));
-  });
+  await page.waitForFunction(() => !document.getElementById('focusPanel').classList.contains('open'));
   assert.equal(await firstRow.evaluate((node) => document.activeElement === node), true, 'S01: focus restoration failed');
   await page.close();
 
