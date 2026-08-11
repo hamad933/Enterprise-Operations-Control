@@ -30,6 +30,15 @@ function applyState(nextState, message = '') {
   if (message) showToast(message);
 }
 
+function routePlaceholder(text) {
+  if (text.includes('المواقع')) return './operations.html?surface=sites';
+  if (text.includes('التحقق')) return './operations.html?surface=reviews';
+  if (text.includes('القرارات')) return './operations.html?surface=decisions';
+  if (text.includes('التقارير')) return './operations.html?surface=reports';
+  if (text.includes('الإعدادات') || text.includes('المزيد')) return './operations.html?surface=administration';
+  return null;
+}
+
 function initialize() {
   renderShell(state);
   renderAll(state);
@@ -51,7 +60,12 @@ document.addEventListener('click', (event) => {
 
   const placeholder = event.target.closest('[data-placeholder]');
   if (placeholder) {
-    showToast(`${placeholder.dataset.placeholder}. لم يتم فتح مساحة إضافية.`);
+    const target = routePlaceholder(placeholder.dataset.placeholder);
+    if (target) {
+      window.location.href = target;
+      return;
+    }
+    showToast(`${placeholder.dataset.placeholder}. لا توجد مساحة أخرى مرتبطة بهذا التحكم.`);
   }
 });
 
