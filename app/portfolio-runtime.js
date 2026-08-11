@@ -109,6 +109,7 @@ const presentationTokens = [
   ['EVIDENCE_REFRESH_REQUIRED','يلزم تحديث الدليل'],
   ['VERIFICATION_REJECTED','مرفوض في التحقق'],
   ['VALIDATION_REQUIRED','يتطلب التحقق'],
+  ['VALIDATION','التحقق'],
   ['READY_FOR_APPROVAL','جاهز للاعتماد'],
   ['PENDING_VERIFICATION','بانتظار التحقق'],
   ['DECISION_NOT_CREATED','لم يُنشأ قرار'],
