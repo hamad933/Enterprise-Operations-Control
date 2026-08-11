@@ -130,6 +130,17 @@ function s02(){
   setText(document.querySelector('.queue-footer span:last-child'),'بيانات توضيحية');
 }
 
+function enforceWorkQueuePriority(){
+  if(surface()!=='work') return;
+  const layout=document.querySelector('.s02-layout');
+  const queue=document.querySelector('.queue-column');
+  const focus=document.querySelector('.focus-task');
+  if(!layout || !queue || !focus) return;
+  const mobile=window.matchMedia('(max-width:620px)').matches;
+  if(mobile && layout.firstElementChild!==focus) layout.prepend(focus);
+  if(!mobile && layout.firstElementChild!==queue) layout.prepend(queue);
+}
+
 function completion(){
   if(!document.body.classList.contains('completion-page')) return;
   const id=surface(); const copy=surfaces[id]||surfaces.sites;
@@ -170,7 +181,7 @@ function sanitize(root=document.body){
 
 let scheduled=false;
 function refresh(){
-  scheduled=false; brand(); s01(); s02(); completion(); sanitize();
+  scheduled=false; brand(); s01(); s02(); enforceWorkQueuePriority(); completion(); sanitize();
   if(document.documentElement.dataset.portfolioReady!=='true') document.documentElement.dataset.portfolioReady='true';
 }
 function schedule(){ if(scheduled) return; scheduled=true; requestAnimationFrame(refresh); }
@@ -178,3 +189,4 @@ function schedule(){ if(scheduled) return; scheduled=true; requestAnimationFrame
 loadStyle(); buildLegacyNav();
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',schedule,{once:true}); else schedule();
 new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+window.matchMedia('(max-width:620px)').addEventListener?.('change',schedule);
