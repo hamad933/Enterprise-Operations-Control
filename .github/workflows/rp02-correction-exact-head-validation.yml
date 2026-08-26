@@ -1,0 +1,44 @@
+name: RP02 Correction Exact-Head Validation
+
+on:
+  pull_request_target:
+    branches:
+      - feature/rp02-portfolio-polish-001
+    paths:
+      - 'package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rp02-correction-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  correction-exact-head:
+    name: RP02 correction exact-head validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR head without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact PR head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_HEAD}"
+
+      - name: Validate S05 correction and regressions
+        run: |
+          set -euo pipefail
+          node --version
+          node tests/foundation.mjs
+          node tests/s02.mjs
+          node tests/completion.mjs
