@@ -55,7 +55,7 @@ export function renderLedger(state) {
     const actionableHere = canActOnRecord(state, record);
     const selected = state.selectedRecordId === record.id;
     return `
-      <article class="ledger-row ${selected ? 'selected' : ''}" role="listitem" tabindex="0" data-record="${record.id}" style="--row-accent:${record.accent}" aria-label="الأولوية ${record.priority}: ${escapeHtml(record.title)}">
+      <article class="ledger-row ${selected ? 'selected' : ''}" role="listitem" data-record="${record.id}" style="--row-accent:${record.accent}" aria-label="الأولوية ${record.priority}: ${escapeHtml(record.title)}">
         <div class="cell priority-cell"><div class="priority-no">${record.priority}</div><div class="severity-mini">${record.severityLabel}</div></div>
         <div class="cell issue-cell">
           <div class="row-title">${escapeHtml(record.title)}</div>
