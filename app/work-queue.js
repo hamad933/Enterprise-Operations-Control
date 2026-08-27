@@ -40,9 +40,20 @@ function routePlaceholder(text) {
   return null;
 }
 
+function applyInboundContext() {
+  const params = new URLSearchParams(window.location.search);
+  const taskId = params.get('task');
+  const assetId = params.get('asset');
+
+  if (taskId) state = selectTask(state, taskId);
+  if (assetId) state = setQueueSearch(state, assetId);
+}
+
 function initialize() {
+  applyInboundContext();
   renderShell(state);
   renderAll(state);
+  byId('queueSearch').value = state.searchTerm;
   document.documentElement.dataset.surface = S02_META.surface;
 }
 
