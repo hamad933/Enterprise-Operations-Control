@@ -211,16 +211,15 @@ async function semanticJourneys(browser) {
   const viewport = ['desktop', 1440, 960];
 
   let page = await openChecked(browser, surfaces[0], viewport);
-  const firstRow = page.locator('.ledger-row').first();
-  const firstRecordId = await firstRow.getAttribute('data-record');
-  await firstRow.focus();
+  const firstAction = page.locator('.ledger-row .action-btn').first();
+  await firstAction.focus();
   await page.keyboard.press('Enter');
   await page.locator('#focusPanel.open').waitFor();
   assert.equal(await page.locator('#focusPanel').getAttribute('aria-modal'), 'true');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.getElementById('focusPanel').classList.contains('open'));
-  await page.waitForFunction((recordId) => document.activeElement?.dataset?.record === recordId, firstRecordId);
-  assert.equal(await firstRow.evaluate((node) => document.activeElement === node), true, 'S01: focus restoration failed');
+  await page.waitForFunction(() => document.activeElement?.classList?.contains('action-btn'));
+  assert.equal(await firstAction.evaluate((node) => document.activeElement === node), true, 'S01: action-button focus restoration failed');
   await page.close();
 
   page = await openChecked(browser, surfaces[1], viewport);

@@ -66,7 +66,7 @@ async function snapElement(page,selector,name){
     let page=await open(browser,surfaces[0],desktop);
     await snapElement(page,'.app-header','focus-global-brand-header.png');
     await snapElement(page,'.route-panel','focus-s01-route-ribbon.png');
-    await page.locator('.ledger-row').first().click();
+    await page.locator('.ledger-row .action-btn').first().click();
     await page.locator('#focusPanel.open').waitFor();
     await snapElement(page,'#focusPanel','focus-s01-authority-aperture.png');
     await page.close();
