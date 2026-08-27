@@ -188,12 +188,6 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  const row = event.target.closest('.ledger-row');
-  if (row && !event.target.closest('button')) {
-    openFocus(row.dataset.record, row);
-    return;
-  }
-
   const scopeOption = event.target.closest('[data-scope]');
   if (scopeOption) {
     const next = selectScope(state, scopeOption.dataset.scope);
@@ -219,13 +213,6 @@ document.addEventListener('click', (event) => {
       return;
     }
     showToast(`${placeholder.dataset.placeholder}. لا توجد مساحة أخرى مرتبطة بهذا التحكم.`);
-  }
-});
-
-byId('ledgerList').addEventListener('keydown', (event) => {
-  if ((event.key === 'Enter' || event.key === ' ') && event.target.classList.contains('ledger-row')) {
-    event.preventDefault();
-    openFocus(event.target.dataset.record, event.target);
   }
 });
 
