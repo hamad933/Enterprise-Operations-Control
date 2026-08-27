@@ -1,5 +1,5 @@
 import './portfolio-runtime.js';
-import { kpis, surfaces } from './completion-data.js';
+import { assets, kpis, surfaces } from './completion-data.js';
 import { renderAll, renderRoot } from './completion-render.js';
 import {
   approveReview,
@@ -25,6 +25,24 @@ let state = createCompletionState(surfaceId);
 let toastTimer = null;
 
 const byId = (id) => document.getElementById(id);
+const mobileSurfaceLinks = [
+  { id: 'attention', code: 'S01', label: 'الانتباه', href: './index.html' },
+  { id: 'work', code: 'S02', label: 'الأعمال', href: './work-queue.html' },
+  ...surfaces.map((surface) => ({ ...surface, href: `./operations.html?surface=${surface.id}` }))
+];
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[char]);
+}
+
+function renderCompleteMobileNavigation() {
+  byId('completionMobileNav').innerHTML = mobileSurfaceLinks.map((link) => `
+    <a href="${link.href}" class="${link.id === state.surfaceId ? 'active' : ''}" ${link.id === state.surfaceId ? 'aria-current="page"' : ''}>
+      <span class="nav-code">${escapeHtml(link.code)}</span><span>${escapeHtml(link.label)}</span>
+    </a>`).join('');
+}
 
 function showToast(message) {
   const toast = byId('completionToast');
@@ -88,6 +106,17 @@ byId('completionSearch').addEventListener('input', (event) => {
 });
 
 document.addEventListener('click', (event) => {
+  const workContextLink = event.target.closest('a.secondary-action[href="./work-queue.html"]');
+  if (workContextLink && state.surfaceId === 'sites') {
+    const selectedAsset = assets.find((item) => item.id === state.selectedAssetId);
+    if (selectedAsset) {
+      event.preventDefault();
+      const context = new URLSearchParams({ task: selectedAsset.work, asset: selectedAsset.id });
+      window.location.href = `./work-queue.html?${context.toString()}`;
+      return;
+    }
+  }
+
   const site = event.target.closest('[data-site]');
   if (site) {
     applyState(selectSite(state, site.dataset.site));
@@ -172,4 +201,5 @@ document.addEventListener('click', (event) => {
 });
 
 renderAll(state, mode);
+renderCompleteMobileNavigation();
 applyRuntimePresentation();
