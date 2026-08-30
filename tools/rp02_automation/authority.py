@@ -4,12 +4,19 @@ from typing import Mapping, Any
 
 from .errors import Classification, GatewayError
 from .schema import (
-    CENTRAL_CONTROLLER, DECLARED_MUTATION_ACTIONS, INDEPENDENT_REVIEWER,
-    PUBLICATION_ACTIONS, READ_ACTIONS, RECONCILIATION_ACTIONS,
+    CENTRAL_CONTROLLER, DECLARED_MUTATION_ACTIONS, DEFAULT_BRANCH, INDEPENDENT_REVIEWER,
+    PUBLICATION_ACTIONS, READ_ACTIONS, RECONCILIATION_ACTIONS, REPOSITORY,
 )
 
 
-def authorize(request: Mapping[str, Any], *, actor: str | None = None, repository_owner: str = "hamad933") -> None:
+def authorize(
+    request: Mapping[str, Any],
+    *,
+    actor: str | None = None,
+    repository_owner: str = "hamad933",
+    runtime_repository: str | None = None,
+    runtime_ref: str | None = None,
+) -> None:
     controller = str(request.get("controller_id") or "")
     action = str(request.get("action") or "")
     if action in READ_ACTIONS:
@@ -25,3 +32,7 @@ def authorize(request: Mapping[str, Any], *, actor: str | None = None, repositor
 
     if actor is not None and actor != repository_owner:
         raise GatewayError(Classification.AUTHORITY_DENIED, "GitHub transport actor must be the repository owner")
+    if runtime_repository is not None and runtime_repository.casefold() != REPOSITORY.casefold():
+        raise GatewayError(Classification.AUTHORITY_DENIED, "runtime repository is outside RP02")
+    if runtime_ref is not None and runtime_ref != f"refs/heads/{DEFAULT_BRANCH}":
+        raise GatewayError(Classification.AUTHORITY_DENIED, "runtime ref is outside the governed default branch")
