@@ -115,10 +115,24 @@ class IdempotencyTests(unittest.TestCase):
 
     def test_request_and_effect_identity_are_separate(self):
         request = normalize_request(base_request())
-        self.assertNotEqual(request_key(request["request_id"]), effect_key(
-            repository=request["repository"], write_domain="docs/automation", logical_task_id=request["logical_task_id"]
-        ))
+        self.assertNotEqual(
+            request_key(request["request_id"]),
+            effect_key(repository=request["repository"], write_domain="docs/automation"),
+        )
         self.assertEqual(len(intent_identity(request)), 64)
+
+    def test_same_write_domain_has_one_effect_identity(self):
+        repo = "hamad933/Enterprise-Operations-Control"
+        first_task_effect = effect_key(repository=repo, write_domain="docs/automation")
+        second_task_effect = effect_key(repository=repo, write_domain="docs/automation")
+        self.assertEqual(first_task_effect, second_task_effect)
+
+    def test_independent_write_domains_have_distinct_effect_identities(self):
+        repo = "hamad933/Enterprise-Operations-Control"
+        self.assertNotEqual(
+            effect_key(repository=repo, write_domain="docs/automation"),
+            effect_key(repository=repo, write_domain="app/s02"),
+        )
 
 
 class ReconciliationTests(unittest.TestCase):
