@@ -1,0 +1,38 @@
+name: RP02 Automation Foundation Tests
+
+on:
+  pull_request:
+    paths:
+      - "tools/rp02_automation/**"
+      - "tests/rp02_automation/**"
+      - "docs/automation/**"
+      - ".github/workflows/rp02-automation-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact raw head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Run deterministic foundation checks
+        shell: bash
+        run: bash tools/rp02_automation/setup.sh
+      - name: Reject secret-like values in automation source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE '(AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,})' tools/rp02_automation tests/rp02_automation docs/automation .github/workflows/rp02-automation-*.yml; then
+            echo "Secret-like value detected in RP02 automation candidate."
+            exit 1
+          fi

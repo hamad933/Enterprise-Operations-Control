@@ -1,0 +1,113 @@
+name: RP02 Automation Shadow Inspect
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Stable request identity
+        required: true
+        type: string
+      controller_id:
+        description: Authorized RP02 read actor
+        required: true
+        type: choice
+        options: [RP02_CENTRAL_CONTROLLER, RP02_INDEPENDENT_REVIEWER]
+      logical_task_id:
+        description: Stable logical task identity
+        required: true
+        type: string
+      action:
+        description: Read-only Jules operation
+        required: true
+        type: choice
+        options: [inspect_sources, inspect_sessions, inspect_session, inspect_activities]
+      expected_sha:
+        description: Exact current main SHA precondition
+        required: true
+        type: string
+      session_id:
+        description: Exact Jules session id for session/activity reads
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rp02-automation-read-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+jobs:
+  transport-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require canonical repository owner and governed default branch
+        shell: bash
+        env:
+          ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$ACTOR" = "$OWNER"
+          test "$REPOSITORY" = "hamad933/Enterprise-Operations-Control"
+          test "$REF" = "refs/heads/main"
+
+  inspect:
+    needs: transport-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Build strict JSON envelope without shell interpolation
+        shell: bash
+        env:
+          RP02_INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          RP02_INPUT_CONTROLLER_ID: ${{ inputs.controller_id }}
+          RP02_INPUT_LOGICAL_TASK_ID: ${{ inputs.logical_task_id }}
+          RP02_INPUT_ACTION: ${{ inputs.action }}
+          RP02_INPUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RP02_INPUT_SESSION_ID: ${{ inputs.session_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          req = {
+              "schema_version": "1.0",
+              "request_id": os.environ["RP02_INPUT_REQUEST_ID"],
+              "project_id": "RP02",
+              "controller_id": os.environ["RP02_INPUT_CONTROLLER_ID"],
+              "logical_task_id": os.environ["RP02_INPUT_LOGICAL_TASK_ID"],
+              "lane": "AUTOMATION",
+              "action": os.environ["RP02_INPUT_ACTION"],
+              "repository": "hamad933/Enterprise-Operations-Control",
+              "starting_branch": "main",
+              "expected_sha": os.environ["RP02_INPUT_EXPECTED_SHA"],
+          }
+          session = os.environ.get("RP02_INPUT_SESSION_ID", "").strip()
+          if session:
+              req["session_id"] = session
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              fh.write("RP02_AUTOMATION_REQUEST_JSON=" + json.dumps(req, separators=(",", ":")) + "\n")
+          PY
+      - name: Execute GET-only shadow inspection
+        shell: bash
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+        run: python -m tools.rp02_automation.cli inspect --output-dir "$RUNNER_TEMP/rp02-automation-evidence"
+      - name: Upload machine-readable shadow evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rp02-automation-shadow-${{ github.run_id }}
+          path: ${{ runner.temp }}/rp02-automation-evidence/
+          if-no-files-found: warn
+          retention-days: 14
