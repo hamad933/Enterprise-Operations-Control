@@ -10,6 +10,7 @@ Status: `FOUNDATION`
 | Idempotency | exact replay, changed replay conflict | concurrent duplicate with durable StateStore |
 | Reconciliation | applied, proven not-applied, unknown | live lost-response canary |
 | Secrets | key-name redaction, value redaction, source scan | live log/artifact leak canary |
+| Workflow hardening | immutable Action SHAs, no untrusted secret trigger, step-scoped Jules secret, non-persisted checkout credentials, read-only permissions | live shadow log/artifact verification |
 | Jules read safety | no mutation API surface, malformed provider JSON, incomplete pagination, repeated page token, malformed/cross-session activity identity | timeout/rate-limit fixtures, live read canary, provider source-binding proof |
 | Publication | not implemented | changed-path digest, stale branch, duplicate publication, exact remote readback |
 | Concurrency | deterministic request/effect keys | workflow-level same-effect serialization and independent-domain parallelism |
