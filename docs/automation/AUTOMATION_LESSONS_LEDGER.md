@@ -64,3 +64,16 @@
 - SECURITY_IMPLICATION: reduces control-plane dependency drift and makes later upgrades explicit review events.
 - RECOMMENDED_ADOPTION: use immutable full-SHA action pins in RP02 automation; periodically re-verify upstream releases before bounded upgrades.
 - REJECTED_ALTERNATIVES: floating major tags such as `@v4`/`@v5`; suppressing the Node deprecation warning without dependency upgrade.
+
+## Jules — current provider contract outranks stale reference assumptions
+- SOURCE_SYSTEM: current official Jules API documentation, re-verified 2026-08-30.
+- SOURCE_REF: Sources, Sessions, Activities, and API overview reference pages.
+- PROBLEM_SOLVED: a mature reference implementation may encode provider behavior that has changed or was narrower than the current public contract.
+- FAILURE_MODE: CEP's inspected source-list path did not paginate, while current Jules Sources documentation explicitly exposes `pageSize`, `pageToken`, and `nextPageToken`; CEP also assumed numeric session IDs, while current Sessions examples separate resource name `sessions/{session}` from a string `id` field.
+- MECHANISM: use mature systems for safety invariants, but re-verify volatile provider contracts directly; paginate every current list endpoint and bind path identity to canonical resource names rather than an unrelated metadata field.
+- WHY_IT_WORKS: stable internal safety mechanisms remain portable without freezing provider-specific assumptions in time.
+- PORTABLE_TO_THIS_PROJECT: yes, and reusable for future provider adapters.
+- PROJECT_SPECIFIC_PARTS: RP02 source owner/repository/default-branch binding.
+- SECURITY_IMPLICATION: avoids incomplete inventory, false identity mismatch, and unsafe decisions based on stale provider assumptions.
+- RECOMMENDED_ADOPTION: re-verify provider API semantics whenever materially relied upon; fail closed when inventory completeness cannot be proven.
+- REJECTED_ALTERNATIVES: blindly cloning CEP provider code; assuming examples from historical integrations are permanent API law.
