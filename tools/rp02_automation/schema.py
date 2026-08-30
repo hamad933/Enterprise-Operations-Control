@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping
 
 from .canonical import REQUEST_ID_RE, SHA40_RE, TOKEN_RE
@@ -11,6 +12,7 @@ REPOSITORY = "hamad933/Enterprise-Operations-Control"
 DEFAULT_BRANCH = "main"
 CENTRAL_CONTROLLER = "RP02_CENTRAL_CONTROLLER"
 INDEPENDENT_REVIEWER = "RP02_INDEPENDENT_REVIEWER"
+RESOURCE_SEGMENT_RE = re.compile(r"^[^/\s\x00-\x1f\x7f]{1,160}$")
 
 READ_ACTIONS = frozenset({"inspect_sources", "inspect_sessions", "inspect_session", "inspect_activities"})
 DECLARED_MUTATION_ACTIONS = frozenset({"create_session", "send_message", "approve_plan"})
@@ -36,17 +38,7 @@ ACTION_REQUIRED = {
     "publish_candidate": frozenset({"write_domain"}),
 }
 
-ACTION_OPTIONAL = {
-    "inspect_sources": frozenset(),
-    "inspect_sessions": frozenset(),
-    "inspect_session": frozenset(),
-    "inspect_activities": frozenset(),
-    "create_session": frozenset(),
-    "send_message": frozenset(),
-    "approve_plan": frozenset(),
-    "reconcile_write_intent": frozenset(),
-    "publish_candidate": frozenset(),
-}
+ACTION_OPTIONAL = {action: frozenset() for action in ALL_ACTIONS}
 
 
 def _text(value: Any, field: str, *, regex=None) -> str:
@@ -56,6 +48,16 @@ def _text(value: Any, field: str, *, regex=None) -> str:
     if regex is not None and not regex.fullmatch(text):
         raise GatewayError(Classification.INVALID_REQUEST, f"{field} has an invalid format")
     return text
+
+
+def _field_regex(field: str):
+    if field == "session_id":
+        return RESOURCE_SEGMENT_RE
+    if field == "target_request_id":
+        return REQUEST_ID_RE
+    if field in {"expected_session_update_time"}:
+        return None
+    return TOKEN_RE
 
 
 def normalize_request(raw: Mapping[str, Any]) -> dict[str, Any]:
@@ -86,7 +88,7 @@ def normalize_request(raw: Mapping[str, Any]) -> dict[str, Any]:
     }
     for key in sorted(allowed - COMMON_REQUIRED):
         if raw.get(key) not in (None, ""):
-            normalized[key] = _text(raw.get(key), key, regex=TOKEN_RE if key not in {"expected_session_update_time"} else None)
+            normalized[key] = _text(raw.get(key), key, regex=_field_regex(key))
 
     if normalized["schema_version"] != SCHEMA_VERSION:
         raise GatewayError(Classification.INVALID_REQUEST, "unsupported schema_version")
