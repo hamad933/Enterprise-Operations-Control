@@ -86,6 +86,26 @@ class AuthorityTests(unittest.TestCase):
         with self.assertRaises(GatewayError):
             authorize(normalize_request(base_request()), actor="fork-user")
 
+    def test_wrong_runtime_repository_denied(self):
+        with self.assertRaises(GatewayError) as ctx:
+            authorize(
+                normalize_request(base_request()),
+                actor="hamad933",
+                runtime_repository="fork-user/Enterprise-Operations-Control",
+                runtime_ref="refs/heads/main",
+            )
+        self.assertEqual(ctx.exception.classification, Classification.AUTHORITY_DENIED)
+
+    def test_wrong_runtime_ref_denied(self):
+        with self.assertRaises(GatewayError) as ctx:
+            authorize(
+                normalize_request(base_request()),
+                actor="hamad933",
+                runtime_repository="hamad933/Enterprise-Operations-Control",
+                runtime_ref="refs/heads/feature/unsafe",
+            )
+        self.assertEqual(ctx.exception.classification, Classification.AUTHORITY_DENIED)
+
     def test_reviewer_cannot_request_mutation(self):
         request = base_request(
             controller_id="RP02_INDEPENDENT_REVIEWER",
