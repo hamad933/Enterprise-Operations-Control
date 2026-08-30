@@ -66,6 +66,13 @@ class JulesReadOnlyClient:
             time.sleep(min(2 ** (attempt - 1), 2))
         raise GatewayError(Classification.READ_FAILED, "Jules GET failed", {"error": type(last_error).__name__ if last_error else "unknown"})
 
+    def list_sources(self) -> list[dict[str, Any]]:
+        payload = self._get("/sources")
+        sources = payload.get("sources")
+        if not isinstance(sources, list) or any(not isinstance(item, dict) for item in sources):
+            raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules sources collection is malformed")
+        return list(sources)
+
     def list_sessions(self, *, page_size: int = 100, max_pages: int = 10) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         token: str | None = None
