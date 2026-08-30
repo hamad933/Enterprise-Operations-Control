@@ -34,6 +34,11 @@ class WorkflowSecurityTests(unittest.TestCase):
         self.assertNotIn("pull_request:", self.inspect)
         self.assertNotIn("workflow_run:", self.inspect)
 
+    def test_shadow_transport_is_bound_to_canonical_repository(self):
+        self.assertIn("REPOSITORY: ${{ github.repository }}", self.inspect)
+        self.assertIn('test "$REPOSITORY" = "hamad933/Enterprise-Operations-Control"', self.inspect)
+        self.assertIn('test "$REF" = "refs/heads/main"', self.inspect)
+
     def test_jules_secret_is_scoped_only_to_provider_step(self):
         marker = "- name: Execute GET-only shadow inspection"
         self.assertIn(marker, self.inspect)
