@@ -5,7 +5,7 @@ Status: `FOUNDATION`
 | Area | Cases implemented now | Later acceptance gate |
 |---|---|---|
 | Schema | valid read, source inspection, unknown field, irrelevant action field, malformed SHA, missing session ID, wrong repository | mutation/publication action-specific fields |
-| Authority | owner transport, non-owner rejection, reviewer mutation denial | Drive authority refs, lane/write-domain registry |
+| Authority | owner transport, non-owner rejection, reviewer mutation denial, wrong runtime repository, wrong runtime ref, canonical repository shell gate | Drive authority refs, lane/write-domain registry |
 | Identity | request identity, intent digest, separate effect identity, same write domain stable across logical tasks, distinct write domains differ | durable cross-run registry |
 | Idempotency | exact replay, changed replay conflict | concurrent duplicate with durable StateStore |
 | Reconciliation | applied, proven not-applied, unknown | live lost-response canary |
