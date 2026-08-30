@@ -48,7 +48,9 @@ def inspect(output_dir: str) -> int:
             read_attempts=int(os.environ.get("RP02_JULES_READ_ATTEMPTS", "2")),
         )
         action = request["action"]
-        if action == "inspect_sessions":
+        if action == "inspect_sources":
+            result = {"sources": client.list_sources()}
+        elif action == "inspect_sessions":
             result = {"sessions": client.list_sessions()}
         elif action == "inspect_session":
             result = {"session": client.get_session(request["session_id"])}
