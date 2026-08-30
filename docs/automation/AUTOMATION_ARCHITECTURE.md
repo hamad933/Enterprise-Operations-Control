@@ -8,10 +8,10 @@ RP02 owns its automation runtime inside `hamad933/Enterprise-Operations-Control`
 ## Foundation layers
 1. **Request normalization** — strict schema, unknown-key rejection, exact project/repository/default-branch/SHA binding.
 2. **Authority gate** — action-specific controller rules plus repository-owner transport gate.
-3. **Identity model** — separate stable request identity, canonical intent identity, and effect/write-domain identity.
+3. **Identity model** — separate stable request identity, canonical intent identity, logical-task identity, and effect/write-domain identity.
 4. **Idempotency model** — exact replay is safe; changed intent under the same request ID fails closed.
 5. **Reconciliation model** — `APPLIED`, `NOT_APPLIED`, or `RECONCILIATION_REQUIRED`; retry is permitted only after authoritative `NOT_APPLIED` proof.
-6. **Provider adapter** — `JulesReadOnlyClient` exposes GET operations only in this stage and has bounded read budget, timeout, pagination, and bounded transient read retry.
+6. **Provider adapter** — `JulesReadOnlyClient` exposes GET operations only in this stage and has bounded read budget, timeout, fail-closed pagination, and bounded transient read retry.
 7. **Evidence layer** — redacted JSON evidence and postconditions.
 8. **GitHub transport** — owner + `refs/heads/main` gate, least-privilege permissions, request serialization, exact SHA precondition, artifact upload.
 
@@ -26,7 +26,8 @@ After independent acceptance of the foundation: durable request/effect StateStor
 
 ## Concurrency law
 - Request serialization key = stable request identity.
-- Effect serialization key = repository + write domain + logical task identity.
+- Logical-task identity tracks lifecycle continuity but does not weaken effect locking.
+- Effect serialization key = repository + write domain.
 - Same request cannot execute concurrently.
-- Same effect domain must serialize.
-- Independent effect domains remain parallel after independence is proven.
+- Any two effects in the same write domain must serialize, even when their logical task IDs differ.
+- Independent write domains remain parallel after independence is proven.
