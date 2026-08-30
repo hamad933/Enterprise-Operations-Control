@@ -27,10 +27,10 @@ def request_key(request_id: str) -> str:
     return sha256_hex(f"rp02:request:{request_id}")[:32]
 
 
-def effect_key(*, repository: str, write_domain: str, logical_task_id: str) -> str:
+def effect_key(*, repository: str, write_domain: str) -> str:
+    """Stable serialization identity for all effects that can collide in one write domain."""
     material = canonical_json({
         "repository": repository.casefold(),
         "write_domain": write_domain,
-        "logical_task_id": logical_task_id,
     })
     return sha256_hex("rp02:effect:" + material)[:32]
