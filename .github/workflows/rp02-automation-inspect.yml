@@ -58,23 +58,23 @@ jobs:
     needs: transport-gate
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
-      RP02_INPUT_REQUEST_ID: ${{ inputs.request_id }}
-      RP02_INPUT_CONTROLLER_ID: ${{ inputs.controller_id }}
-      RP02_INPUT_LOGICAL_TASK_ID: ${{ inputs.logical_task_id }}
-      RP02_INPUT_ACTION: ${{ inputs.action }}
-      RP02_INPUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
-      RP02_INPUT_SESSION_ID: ${{ inputs.session_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Build strict JSON envelope without shell interpolation
         shell: bash
+        env:
+          RP02_INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          RP02_INPUT_CONTROLLER_ID: ${{ inputs.controller_id }}
+          RP02_INPUT_LOGICAL_TASK_ID: ${{ inputs.logical_task_id }}
+          RP02_INPUT_ACTION: ${{ inputs.action }}
+          RP02_INPUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RP02_INPUT_SESSION_ID: ${{ inputs.session_id }}
         run: |
           python - <<'PY'
           import json, os
@@ -98,6 +98,8 @@ jobs:
           PY
       - name: Execute GET-only shadow inspection
         shell: bash
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
         run: python -m tools.rp02_automation.cli inspect --output-dir "$RUNNER_TEMP/rp02-automation-evidence"
       - name: Upload machine-readable shadow evidence
         if: always()
