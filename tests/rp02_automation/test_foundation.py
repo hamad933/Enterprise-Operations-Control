@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from tools.rp02_automation.authority import authorize
 from tools.rp02_automation.canonical import effect_key, intent_identity, request_key
@@ -27,6 +28,20 @@ def base_request(**updates):
     }
     value.update(updates)
     return value
+
+
+class DummyResponse:
+    def __init__(self, body: bytes):
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self) -> bytes:
+        return self.body
 
 
 class SchemaTests(unittest.TestCase):
@@ -120,6 +135,46 @@ class ReconciliationTests(unittest.TestCase):
         state = classify_authoritative_poststate(effect_present=None)
         self.assertEqual(state, ReconciliationState.RECONCILIATION_REQUIRED)
         self.assertFalse(retry_permitted(state))
+
+
+class ProviderReadTests(unittest.TestCase):
+    def test_session_inventory_truncation_fails_closed(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        pages = [
+            {"sessions": [{"id": "1"}], "nextPageToken": "next-1"},
+            {"sessions": [{"id": "2"}], "nextPageToken": "next-2"},
+        ]
+        with patch.object(client, "_get", side_effect=pages):
+            with self.assertRaises(GatewayError) as ctx:
+                client.list_sessions(max_pages=2)
+        self.assertEqual(ctx.exception.classification, Classification.INVENTORY_INCOMPLETE)
+
+    def test_repeated_pagination_token_is_protocol_failure(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        pages = [
+            {"sessions": [{"id": "1"}], "nextPageToken": "same"},
+            {"sessions": [{"id": "2"}], "nextPageToken": "same"},
+        ]
+        with patch.object(client, "_get", side_effect=pages):
+            with self.assertRaises(GatewayError) as ctx:
+                client.list_sessions(max_pages=3)
+        self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
+
+    def test_nested_activity_suffix_is_rejected(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        with patch.object(client, "_get", return_value={
+            "activities": [{"name": "sessions/123/activities/a/extra"}],
+        }):
+            with self.assertRaises(GatewayError) as ctx:
+                client.list_activities("123")
+        self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
+
+    def test_malformed_provider_json_is_protocol_failure(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        with patch("urllib.request.urlopen", return_value=DummyResponse(b"{bad-json")):
+            with self.assertRaises(GatewayError) as ctx:
+                client.list_sources()
+        self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
 
 
 class SecretTests(unittest.TestCase):
