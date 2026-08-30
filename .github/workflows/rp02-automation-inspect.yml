@@ -43,15 +43,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require repository owner and governed default branch
+      - name: Require canonical repository owner and governed default branch
         shell: bash
         env:
           ACTOR: ${{ github.actor }}
           OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
         run: |
           set -euo pipefail
           test "$ACTOR" = "$OWNER"
+          test "$REPOSITORY" = "hamad933/Enterprise-Operations-Control"
           test "$REF" = "refs/heads/main"
 
   inspect:
