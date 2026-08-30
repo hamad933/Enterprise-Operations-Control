@@ -12,7 +12,7 @@ DEFAULT_BRANCH = "main"
 CENTRAL_CONTROLLER = "RP02_CENTRAL_CONTROLLER"
 INDEPENDENT_REVIEWER = "RP02_INDEPENDENT_REVIEWER"
 
-READ_ACTIONS = frozenset({"inspect_sessions", "inspect_session", "inspect_activities"})
+READ_ACTIONS = frozenset({"inspect_sources", "inspect_sessions", "inspect_session", "inspect_activities"})
 DECLARED_MUTATION_ACTIONS = frozenset({"create_session", "send_message", "approve_plan"})
 RECONCILIATION_ACTIONS = frozenset({"reconcile_write_intent"})
 PUBLICATION_ACTIONS = frozenset({"publish_candidate"})
@@ -25,6 +25,7 @@ COMMON_REQUIRED = frozenset({
 BASE_OPTIONAL = frozenset({"lane", "authority_ref", "authority_event"})
 
 ACTION_REQUIRED = {
+    "inspect_sources": frozenset(),
     "inspect_sessions": frozenset(),
     "inspect_session": frozenset({"session_id"}),
     "inspect_activities": frozenset({"session_id"}),
@@ -36,6 +37,7 @@ ACTION_REQUIRED = {
 }
 
 ACTION_OPTIONAL = {
+    "inspect_sources": frozenset(),
     "inspect_sessions": frozenset(),
     "inspect_session": frozenset(),
     "inspect_activities": frozenset(),
