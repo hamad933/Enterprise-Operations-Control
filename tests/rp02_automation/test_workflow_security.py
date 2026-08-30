@@ -9,6 +9,10 @@ INSPECT = ROOT / ".github" / "workflows" / "rp02-automation-inspect.yml"
 TESTS = ROOT / ".github" / "workflows" / "rp02-automation-tests.yml"
 SHA_PIN = re.compile(r"^\s*uses:\s+actions/[A-Za-z0-9_.-]+@[0-9a-f]{40}(?:\s+#.*)?$")
 ACTION_USE = re.compile(r"^\s*uses:\s+actions/.*$", re.MULTILINE)
+JULES_SECRET_MAPPING = re.compile(
+    r"^\s+JULES_API_KEY:\s+\$\{\{\s*secrets\.JULES_API_KEY\s*\}\}\s*$",
+    re.MULTILINE,
+)
 
 
 class WorkflowSecurityTests(unittest.TestCase):
@@ -32,11 +36,10 @@ class WorkflowSecurityTests(unittest.TestCase):
 
     def test_jules_secret_is_scoped_only_to_provider_step(self):
         marker = "- name: Execute GET-only shadow inspection"
-        self.assertEqual(self.inspect.count("JULES_API_KEY"), 1)
         self.assertIn(marker, self.inspect)
         before, after = self.inspect.split(marker, 1)
         self.assertNotIn("JULES_API_KEY", before)
-        self.assertIn("JULES_API_KEY", after)
+        self.assertEqual(len(JULES_SECRET_MAPPING.findall(after)), 1)
         upload = after.split("- name: Upload machine-readable shadow evidence", 1)[1]
         self.assertNotIn("JULES_API_KEY", upload)
 
