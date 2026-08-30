@@ -32,6 +32,28 @@ class JulesReadOnlyClient:
             raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules session identity is malformed")
         return text
 
+    @staticmethod
+    def _activity_name_for_session(name: Any, session_id: str) -> str:
+        text = str(name or "")
+        prefix = f"sessions/{session_id}/activities/"
+        suffix = text[len(prefix):] if text.startswith(prefix) else ""
+        if not suffix or "/" in suffix or len(suffix) > 160:
+            raise GatewayError(
+                Classification.PROVIDER_PROTOCOL_FAILED,
+                "Jules activity identity is malformed or cross-session",
+                {"expected_session_id": session_id},
+            )
+        return text
+
+    @staticmethod
+    def _next_token(payload: dict[str, Any]) -> str | None:
+        value = payload.get("nextPageToken")
+        if value in (None, ""):
+            return None
+        if not isinstance(value, str) or len(value) > 4096:
+            raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules nextPageToken is malformed")
+        return value
+
     def _consume_read(self) -> None:
         if self.read_count >= self.max_reads:
             raise GatewayError(Classification.READ_BUDGET_EXCEEDED, "Jules read budget exhausted")
@@ -50,7 +72,14 @@ class JulesReadOnlyClient:
                 })
                 with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
                     raw = response.read()
-                    payload = json.loads(raw.decode("utf-8")) if raw else {}
+                    try:
+                        payload = json.loads(raw.decode("utf-8")) if raw else {}
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise GatewayError(
+                            Classification.PROVIDER_PROTOCOL_FAILED,
+                            "Jules returned malformed JSON",
+                            {"blind_retry": False},
+                        ) from exc
                     if not isinstance(payload, dict):
                         raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules returned a non-object JSON payload")
                     return payload
@@ -76,6 +105,7 @@ class JulesReadOnlyClient:
     def list_sessions(self, *, page_size: int = 100, max_pages: int = 10) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         token: str | None = None
+        seen_tokens: set[str] = set()
         for _ in range(max_pages):
             query: dict[str, Any] = {"pageSize": min(max(page_size, 1), 100)}
             if token:
@@ -87,12 +117,18 @@ class JulesReadOnlyClient:
             for item in page:
                 self._valid_session_id(item.get("id"))
             items.extend(page)
-            token = payload.get("nextPageToken") or None
-            if not token:
-                break
-            if not isinstance(token, str) or len(token) > 4096:
-                raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules nextPageToken is malformed")
-        return items
+            next_token = self._next_token(payload)
+            if not next_token:
+                return items
+            if next_token in seen_tokens:
+                raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules pagination token repeated")
+            seen_tokens.add(next_token)
+            token = next_token
+        raise GatewayError(
+            Classification.INVENTORY_INCOMPLETE,
+            "Jules session inventory exceeded the configured page bound",
+            {"max_pages": max_pages, "items_observed": len(items), "blind_retry": False},
+        )
 
     def get_session(self, session_id: str) -> dict[str, Any]:
         if not session_id.isdigit() or len(session_id) > 32:
@@ -107,6 +143,7 @@ class JulesReadOnlyClient:
             raise GatewayError(Classification.INVALID_REQUEST, "session_id must be a provider numeric identity")
         items: list[dict[str, Any]] = []
         token: str | None = None
+        seen_tokens: set[str] = set()
         sid = urllib.parse.quote(session_id, safe="")
         for _ in range(max_pages):
             query: dict[str, Any] = {"pageSize": min(max(page_size, 1), 100)}
@@ -117,13 +154,17 @@ class JulesReadOnlyClient:
             if not isinstance(page, list) or any(not isinstance(x, dict) for x in page):
                 raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules activities collection is malformed")
             for item in page:
-                name = str(item.get("name") or "")
-                if not name.startswith(f"sessions/{session_id}/activities/"):
-                    raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "cross-session activity identity rejected")
+                self._activity_name_for_session(item.get("name"), session_id)
             items.extend(page)
-            token = payload.get("nextPageToken") or None
-            if not token:
-                break
-            if not isinstance(token, str) or len(token) > 4096:
-                raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules nextPageToken is malformed")
-        return items
+            next_token = self._next_token(payload)
+            if not next_token:
+                return items
+            if next_token in seen_tokens:
+                raise GatewayError(Classification.PROVIDER_PROTOCOL_FAILED, "Jules pagination token repeated")
+            seen_tokens.add(next_token)
+            token = next_token
+        raise GatewayError(
+            Classification.INVENTORY_INCOMPLETE,
+            "Jules activity inventory exceeded the configured page bound",
+            {"session_id": session_id, "max_pages": max_pages, "items_observed": len(items), "blind_retry": False},
+        )
