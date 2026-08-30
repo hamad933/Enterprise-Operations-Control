@@ -7,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 INSPECT = ROOT / ".github" / "workflows" / "rp02-automation-inspect.yml"
 TESTS = ROOT / ".github" / "workflows" / "rp02-automation-tests.yml"
-SHA_PIN = re.compile(r"^\s*uses:\s+actions/[A-Za-z0-9_.-]+@[0-9a-f]{40}(?:\s+#.*)?$", re.MULTILINE)
-ACTION_USE = re.compile(r"^\s*uses:\s+actions/[^\s]+$", re.MULTILINE)
+SHA_PIN = re.compile(r"^\s*uses:\s+actions/[A-Za-z0-9_.-]+@[0-9a-f]{40}(?:\s+#.*)?$")
+ACTION_USE = re.compile(r"^\s*uses:\s+actions/.*$", re.MULTILINE)
 
 
 class WorkflowSecurityTests(unittest.TestCase):
