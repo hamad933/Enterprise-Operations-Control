@@ -54,6 +54,15 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(request["action"], "inspect_sources")
         self.assertNotIn("write_domain", request)
 
+    def test_alphanumeric_session_resource_segment_is_allowed(self):
+        request = normalize_request(base_request(action="inspect_session", session_id="abc123"))
+        self.assertEqual(request["session_id"], "abc123")
+
+    def test_session_resource_segment_with_slash_is_rejected(self):
+        with self.assertRaises(GatewayError) as ctx:
+            normalize_request(base_request(action="inspect_session", session_id="abc/123"))
+        self.assertEqual(ctx.exception.classification, Classification.INVALID_REQUEST)
+
     def test_unknown_field_fails_closed(self):
         with self.assertRaises(GatewayError) as ctx:
             normalize_request(base_request(arbitrary_shell="rm -rf /"))
@@ -109,7 +118,7 @@ class AuthorityTests(unittest.TestCase):
     def test_reviewer_cannot_request_mutation(self):
         request = base_request(
             controller_id="RP02_INDEPENDENT_REVIEWER",
-            action="send_message", write_domain="docs/automation", session_id="123",
+            action="send_message", write_domain="docs/automation", session_id="abc123",
             expected_session_state="PAUSED", expected_session_update_time="2026-08-30T00:00:00Z",
         )
         with self.assertRaises(GatewayError) as ctx:
@@ -143,9 +152,10 @@ class IdempotencyTests(unittest.TestCase):
 
     def test_same_write_domain_has_one_effect_identity(self):
         repo = "hamad933/Enterprise-Operations-Control"
-        first_task_effect = effect_key(repository=repo, write_domain="docs/automation")
-        second_task_effect = effect_key(repository=repo, write_domain="docs/automation")
-        self.assertEqual(first_task_effect, second_task_effect)
+        self.assertEqual(
+            effect_key(repository=repo, write_domain="docs/automation"),
+            effect_key(repository=repo, write_domain="docs/automation"),
+        )
 
     def test_independent_write_domains_have_distinct_effect_identities(self):
         repo = "hamad933/Enterprise-Operations-Control"
@@ -172,11 +182,33 @@ class ReconciliationTests(unittest.TestCase):
 
 
 class ProviderReadTests(unittest.TestCase):
+    def test_source_inventory_paginates_to_completion(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        pages = [
+            {"sources": [{"name": "sources/github-owner-one"}], "nextPageToken": "next"},
+            {"sources": [{"name": "sources/github-owner-two"}]},
+        ]
+        with patch.object(client, "_get", side_effect=pages) as mocked:
+            result = client.list_sources(page_size=50, max_pages=2)
+        self.assertEqual([x["name"] for x in result], ["sources/github-owner-one", "sources/github-owner-two"])
+        self.assertIn("pageSize=50", mocked.call_args_list[0].args[0])
+        self.assertIn("pageToken=next", mocked.call_args_list[1].args[0])
+
+    def test_source_inventory_truncation_fails_closed(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        with patch.object(client, "_get", return_value={
+            "sources": [{"name": "sources/github-owner-repo"}],
+            "nextPageToken": "more",
+        }):
+            with self.assertRaises(GatewayError) as ctx:
+                client.list_sources(max_pages=1)
+        self.assertEqual(ctx.exception.classification, Classification.INVENTORY_INCOMPLETE)
+
     def test_session_inventory_truncation_fails_closed(self):
         client = JulesReadOnlyClient("dummy", read_attempts=1)
         pages = [
-            {"sessions": [{"id": "1"}], "nextPageToken": "next-1"},
-            {"sessions": [{"id": "2"}], "nextPageToken": "next-2"},
+            {"sessions": [{"name": "sessions/one", "id": "domain-1"}], "nextPageToken": "next-1"},
+            {"sessions": [{"name": "sessions/two", "id": "domain-2"}], "nextPageToken": "next-2"},
         ]
         with patch.object(client, "_get", side_effect=pages):
             with self.assertRaises(GatewayError) as ctx:
@@ -186,21 +218,35 @@ class ProviderReadTests(unittest.TestCase):
     def test_repeated_pagination_token_is_protocol_failure(self):
         client = JulesReadOnlyClient("dummy", read_attempts=1)
         pages = [
-            {"sessions": [{"id": "1"}], "nextPageToken": "same"},
-            {"sessions": [{"id": "2"}], "nextPageToken": "same"},
+            {"sessions": [{"name": "sessions/one", "id": "a"}], "nextPageToken": "same"},
+            {"sessions": [{"name": "sessions/two", "id": "b"}], "nextPageToken": "same"},
         ]
         with patch.object(client, "_get", side_effect=pages):
             with self.assertRaises(GatewayError) as ctx:
                 client.list_sessions(max_pages=3)
         self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
 
+    def test_get_session_uses_resource_name_not_domain_id_as_path_identity(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        with patch.object(client, "_get", return_value={"name": "sessions/abc123", "id": "domain-id"}) as mocked:
+            result = client.get_session("abc123")
+        self.assertEqual(result["id"], "domain-id")
+        self.assertEqual(mocked.call_args.args[0], "/sessions/abc123")
+
+    def test_get_session_rejects_resource_name_mismatch(self):
+        client = JulesReadOnlyClient("dummy", read_attempts=1)
+        with patch.object(client, "_get", return_value={"name": "sessions/other", "id": "abc123"}):
+            with self.assertRaises(GatewayError) as ctx:
+                client.get_session("abc123")
+        self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
+
     def test_nested_activity_suffix_is_rejected(self):
         client = JulesReadOnlyClient("dummy", read_attempts=1)
         with patch.object(client, "_get", return_value={
-            "activities": [{"name": "sessions/123/activities/a/extra"}],
+            "activities": [{"name": "sessions/abc123/activities/a/extra"}],
         }):
             with self.assertRaises(GatewayError) as ctx:
-                client.list_activities("123")
+                client.list_activities("abc123")
         self.assertEqual(ctx.exception.classification, Classification.PROVIDER_PROTOCOL_FAILED)
 
     def test_malformed_provider_json_is_protocol_failure(self):
