@@ -20,7 +20,7 @@ on:
         description: Read-only Jules operation
         required: true
         type: choice
-        options: [inspect_sessions, inspect_session, inspect_activities]
+        options: [inspect_sources, inspect_sessions, inspect_session, inspect_activities]
       expected_sha:
         description: Exact current main SHA precondition
         required: true
