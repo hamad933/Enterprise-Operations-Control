@@ -51,3 +51,16 @@
 - SECURITY_IMPLICATION: prevents bypass through connector capability.
 - RECOMMENDED_ADOPTION: all automation self-changes use the same PR/review path.
 - REJECTED_ALTERNATIVES: direct `main` mutation because GitHub permits it.
+
+## RP02 — third-party GitHub Actions require immutable reviewed pins
+- SOURCE_SYSTEM: RP02 Automation Foundation hosted validation plus current upstream action releases.
+- SOURCE_REF: `RP02 Automation Foundation Tests` hosted log; `actions/checkout v7.0.1`, `actions/setup-python v7.0.0`, `actions/upload-artifact v7.0.1` exact tag commit readbacks.
+- PROBLEM_SOLVED: old action majors emitted Node 20 deprecation warnings and floating version tags leave the trusted control plane exposed to future tag movement or unreviewed dependency changes.
+- FAILURE_MODE: dependency runtime drift or supply-chain substitution changes automation semantics without an RP02 code diff.
+- MECHANISM: verify the current upstream release, resolve its exact commit, pin the workflow to the full commit SHA, and retain the human-readable release version in a comment.
+- WHY_IT_WORKS: execution resolves to reviewed immutable source identity while preserving maintainability.
+- PORTABLE_TO_THIS_PROJECT: yes.
+- PROJECT_SPECIFIC_PARTS: exact RP02 workflows and their required action set.
+- SECURITY_IMPLICATION: reduces control-plane dependency drift and makes later upgrades explicit review events.
+- RECOMMENDED_ADOPTION: use immutable full-SHA action pins in RP02 automation; periodically re-verify upstream releases before bounded upgrades.
+- REJECTED_ALTERNATIVES: floating major tags such as `@v4`/`@v5`; suppressing the Node deprecation warning without dependency upgrade.
