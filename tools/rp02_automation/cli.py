@@ -29,6 +29,18 @@ def _git_head() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip().lower()
 
 
+def _failure_postcondition(classification: str, message: str, details: dict | None = None) -> dict:
+    return {
+        "classification": classification,
+        "message": message,
+        "details": details or {},
+        "provider_mutation_performed": False,
+        "external_effects_dispatched": 0,
+        "new_tasks_or_sessions_created": 0,
+        "safe_to_blind_retry": False,
+    }
+
+
 def inspect(output_dir: str) -> int:
     api_key = os.environ.get("JULES_API_KEY", "")
     bundle = EvidenceBundle(output_dir, secret_values=(api_key,))
@@ -74,17 +86,18 @@ def inspect(output_dir: str) -> int:
         print(json.dumps(post, sort_keys=True))
         return 0
     except GatewayError as exc:
-        bundle.emit("postcondition", {
-            "classification": exc.classification.value,
-            "message": exc.message,
-            "details": exc.details,
-            "provider_mutation_performed": False,
-            "external_effects_dispatched": 0,
-            "new_tasks_or_sessions_created": 0,
-            "safe_to_blind_retry": False,
-        })
+        bundle.emit("postcondition", _failure_postcondition(exc.classification.value, exc.message, exc.details))
         print(json.dumps(exc.as_dict(), sort_keys=True), file=sys.stderr)
         return 2
+    except Exception as exc:  # Last-resort fail-closed evidence; never serialize exception text or environment.
+        post = _failure_postcondition(
+            Classification.INTERNAL_ERROR.value,
+            "unexpected gateway failure",
+            {"exception_type": type(exc).__name__},
+        )
+        bundle.emit("postcondition", post)
+        print(json.dumps(post, sort_keys=True), file=sys.stderr)
+        return 3
 
 
 def main(argv: list[str] | None = None) -> int:
