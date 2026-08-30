@@ -47,7 +47,12 @@ def inspect(output_dir: str) -> int:
     try:
         request = _load_request()
         bundle.emit("normalized_request", request)
-        authorize(request, actor=os.environ.get("GITHUB_ACTOR"))
+        authorize(
+            request,
+            actor=os.environ.get("GITHUB_ACTOR"),
+            runtime_repository=os.environ.get("GITHUB_REPOSITORY"),
+            runtime_ref=os.environ.get("GITHUB_REF"),
+        )
         if request["action"] not in READ_ACTIONS:
             raise GatewayError(Classification.MUTATION_DISABLED, "foundation stage exposes read-only Jules operations only")
         actual_sha = _git_head()
