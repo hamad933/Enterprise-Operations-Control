@@ -34,6 +34,11 @@ class SchemaTests(unittest.TestCase):
         request = normalize_request(base_request())
         self.assertEqual(request["project_id"], "RP02")
 
+    def test_source_inspection_is_read_only_contract(self):
+        request = normalize_request(base_request(action="inspect_sources"))
+        self.assertEqual(request["action"], "inspect_sources")
+        self.assertNotIn("write_domain", request)
+
     def test_unknown_field_fails_closed(self):
         with self.assertRaises(GatewayError) as ctx:
             normalize_request(base_request(arbitrary_shell="rm -rf /"))
@@ -124,8 +129,9 @@ class SecretTests(unittest.TestCase):
         self.assertEqual(safe["jules_api_key"], "[REDACTED]")
         self.assertNotIn(secret, safe["message"])
 
-    def test_client_has_no_post_or_mutation_api(self):
+    def test_client_has_source_read_but_no_mutation_api(self):
         names = set(dir(JulesReadOnlyClient))
+        self.assertIn("list_sources", names)
         self.assertNotIn("create_session", names)
         self.assertNotIn("send_message", names)
         self.assertNotIn("approve_plan", names)
